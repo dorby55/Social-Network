@@ -35,6 +35,8 @@ router.get("/my", auth, groupController.getUserGroups);
 // @access  Private
 router.get("/search", auth, groupController.searchGroups);
 
+router.get("/invitations", auth, groupController.getUserInvitations);
+
 // @route   GET api/groups/:id
 // @desc    Get group by ID
 // @access  Private
@@ -49,6 +51,9 @@ router.put("/:id", auth, groupController.updateGroup);
 // @desc    Delete a group
 // @access  Private
 router.delete("/:id", auth, groupController.deleteGroup);
+
+router.post("/:id/invite/:userId", auth, groupController.inviteToGroup);
+router.put("/:id/invitation", auth, groupController.respondToInvitation);
 
 // @route   POST api/groups/:id/join
 // @desc    Request to join a group
@@ -65,9 +70,11 @@ router.post("/:id/approve/:userId", auth, groupController.approveJoinRequest);
 // @access  Private
 router.post("/:id/reject/:userId", auth, groupController.rejectJoinRequest);
 
+router.delete("/:id/members/:userId", auth, groupController.removeMember);
+
 // @route   POST api/groups/:id/leave
 // @desc    Leave a group
 // @access  Private
-router.post("/:id/leave", auth, groupController.leaveGroup);
+router.delete("/:id/leave", auth, groupController.leaveGroup);
 
 module.exports = router;

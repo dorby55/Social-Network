@@ -1,12 +1,13 @@
 // src/pages/GroupDetail.js
 import React, { useState, useEffect, useContext } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import {
   getGroupById,
   getGroupPosts,
   joinGroup,
   createPost,
+  leaveGroup,
 } from "../services/api";
 import PostItem from "../components/post/PostItem";
 import CreatePostForm from "../components/post/CreatePostForm";
@@ -19,6 +20,9 @@ const GroupDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [localPendingRequest, setLocalPendingRequest] = useState(false);
+
+  const navigate = useNavigate();
 
   // Check if user is a member of the group
   const isMember = group?.members.some(
@@ -29,9 +33,15 @@ const GroupDetail = () => {
   const isAdmin = group?.admin._id === currentUser._id;
 
   // Check if user has a pending join request
-  const hasPendingRequest = group?.pendingRequests?.some(
-    (request) => request.user === currentUser._id
-  );
+  const hasPendingRequest =
+    localPendingRequest ||
+    (group?.pendingRequests &&
+      group.pendingRequests.some((request) => {
+        // Check different formats of user data in the pending request
+        const requestUserId =
+          typeof request.user === "object" ? request.user._id : request.user;
+        return requestUserId === currentUser._id;
+      }));
 
   useEffect(() => {
     const fetchGroupData = async () => {
@@ -40,14 +50,30 @@ const GroupDetail = () => {
         const groupData = await getGroupById(id);
         setGroup(groupData);
 
-        // Fetch group posts
-        const postsData = await getGroupPosts(id);
-        setPosts(postsData);
+        // If the group is restricted, show appropriate message
+        if (groupData.restricted) {
+          setError(
+            groupData.message ||
+              "This is a private group that you don't have access to. You need an invitation to view its contents."
+          );
+        } else {
+          // Fetch group posts if we have access
+          const postsData = await getGroupPosts(id);
+          setPosts(postsData);
+        }
 
         setError(null);
       } catch (err) {
-        setError("Error loading group. Please try again.");
-        console.error(err);
+        console.error("Error fetching group:", err);
+        if (err.response && err.response.status === 404) {
+          setError("Group not found.");
+        } else if (err.response && err.response.status === 403) {
+          setError(
+            "You don't have permission to view this group. You must be a member to access it."
+          );
+        } else {
+          setError("Error loading group. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -61,9 +87,11 @@ const GroupDetail = () => {
     setIsJoining(true);
 
     try {
-      await joinGroup(id);
+      const result = await joinGroup(id);
+      setLocalPendingRequest(true);
+      alert(result.msg || "Join request sent to group admin");
 
-      // Refetch group to update membership status
+      // Refetch group to update the UI
       const updatedGroup = await getGroupById(id);
       setGroup(updatedGroup);
 
@@ -98,6 +126,53 @@ const GroupDetail = () => {
     setPosts(posts.filter((post) => post._id !== deletedPostId));
   };
 
+  const handleLeaveGroup = async () => {
+    if (!window.confirm("Are you sure you want to leave this group?")) {
+      return;
+    }
+
+    try {
+      await leaveGroup(id);
+      // Success! Redirect to groups page
+      navigate("/groups"); // <-- Changed from Navigate to navigate
+    } catch (err) {
+      console.error("Error leaving group:", err);
+
+      // Check if it's a 400 error with the admin message (which is expected if admin tries to leave)
+      if (
+        err.response &&
+        err.response.status === 400 &&
+        err.response.data.msg &&
+        err.response.data.msg.includes("Admin cannot leave")
+      ) {
+        setError(err.response.data.msg);
+      } else {
+        // If it's a different error, show general error message
+        setError("Error leaving group. Please try again.");
+
+        // Check if the user was actually removed despite the error
+        try {
+          // Fetch the group again to see if user is still a member
+          const updatedGroup = await getGroupById(id);
+          const stillMember = updatedGroup.members.some(
+            (member) => (member.user._id || member.user) === currentUser._id
+          );
+
+          if (!stillMember) {
+            // User was successfully removed, redirect
+            alert("You have successfully left the group.");
+            navigate("/groups"); // <-- Changed from Navigate to navigate
+          }
+        } catch (checkErr) {
+          console.error(
+            "Error checking group membership after leave:",
+            checkErr
+          );
+        }
+      }
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading group...</div>;
   }
@@ -108,6 +183,41 @@ const GroupDetail = () => {
 
   if (!group) {
     return <div className="not-found">Group not found</div>;
+  }
+
+  if (group && group.restricted) {
+    return (
+      <div className="restricted-group">
+        <div className="card">
+          <div className="card-header">
+            <h1>{group.name}</h1>
+            {group.isPrivate && (
+              <span className="private-badge">
+                <i className="fas fa-lock"></i> Private Group
+              </span>
+            )}
+          </div>
+          <div className="card-body">
+            <div className="restricted-message">
+              <i className="fas fa-lock restricted-icon"></i>
+              <p>
+                This is a private group. You need to be a member to view its
+                contents.
+              </p>
+              <p>If you've been invited, please check your invitations.</p>
+              <div className="restricted-actions">
+                <Link to="/groups" className="btn btn-primary">
+                  Browse Groups
+                </Link>
+                <Link to="/group-invitations" className="btn btn-outline">
+                  Check Invitations
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -129,24 +239,29 @@ const GroupDetail = () => {
         </div>
 
         <div className="group-header-actions">
-          {!isMember && !hasPendingRequest && (
-            <button
-              className="btn btn-primary"
-              onClick={handleJoinGroup}
-              disabled={isJoining}
-            >
-              {isJoining
-                ? "Joining..."
-                : group.isPrivate
-                ? "Request to Join"
-                : "Join Group"}
-            </button>
-          )}
-
-          {hasPendingRequest && (
-            <button className="btn btn-secondary" disabled>
-              Join Request Pending
-            </button>
+          {!isMember ? (
+            hasPendingRequest ? (
+              <button className="btn btn-secondary" disabled>
+                Join Request Pending
+              </button>
+            ) : (
+              <button
+                className="btn btn-primary"
+                onClick={handleJoinGroup}
+                disabled={isJoining}
+              >
+                {isJoining ? "Sending Request..." : "Request to Join"}
+              </button>
+            )
+          ) : (
+            !isAdmin && (
+              <button
+                className="btn btn-outline danger"
+                onClick={handleLeaveGroup}
+              >
+                Leave Group
+              </button>
+            )
           )}
 
           {isAdmin && (

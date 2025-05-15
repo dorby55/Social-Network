@@ -1,24 +1,33 @@
 // src/pages/GroupsList.js
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getAllGroups } from "../services/api";
+import { getAllGroups, getUserGroups } from "../services/api";
 import GroupItem from "../components/group/GroupItem";
 
 const GroupsList = () => {
   const [groups, setGroups] = useState([]);
+  const [userGroups, setUserGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
     const fetchGroups = async () => {
+      setLoading(true);
       try {
-        const data = await getAllGroups();
-        setGroups(data);
+        // Always fetch both sets of data
+        const [allGroupsData, userGroupsData] = await Promise.all([
+          getAllGroups(),
+          getUserGroups(),
+        ]);
+
+        setGroups(allGroupsData);
+        setUserGroups(userGroupsData);
         setError(null);
       } catch (err) {
+        console.error("Error loading groups:", err);
         setError("Error loading groups. Please try again.");
-        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -28,11 +37,17 @@ const GroupsList = () => {
   }, []);
 
   // Filter groups based on search term
-  const filteredGroups = groups.filter(
-    (group) =>
-      group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getFilteredGroups = () => {
+    const groupsToFilter = activeTab === "my" ? userGroups : groups;
+
+    return groupsToFilter.filter(
+      (group) =>
+        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        group.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const filteredGroups = getFilteredGroups();
 
   return (
     <div className="groups-page">
@@ -41,6 +56,21 @@ const GroupsList = () => {
         <Link to="/create-group" className="btn btn-primary">
           Create Group
         </Link>
+      </div>
+
+      <div className="groups-tabs">
+        <button
+          className={`tab-button ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          All Groups
+        </button>
+        <button
+          className={`tab-button ${activeTab === "my" ? "active" : ""}`}
+          onClick={() => setActiveTab("my")}
+        >
+          My Groups ({userGroups.length})
+        </button>
       </div>
 
       <div className="search-bar">
@@ -58,7 +88,11 @@ const GroupsList = () => {
         <div className="loading">Loading groups...</div>
       ) : filteredGroups.length === 0 ? (
         <div className="empty-state">
-          <p>No groups found. Try a different search or create a new group.</p>
+          <p>
+            {activeTab === "my"
+              ? "You haven't joined any groups yet. Join a group or create a new one."
+              : "No groups found. Try a different search or create a new group."}
+          </p>
         </div>
       ) : (
         <div className="groups-grid">

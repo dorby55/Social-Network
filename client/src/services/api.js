@@ -361,3 +361,95 @@ export const uploadPostMedia = async (file) => {
     throw err;
   }
 };
+
+export const deleteGroup = async (groupId) => {
+  try {
+    const res = await axios.delete(`${API_URL}/groups/${groupId}`);
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const updateGroup = async (groupId, groupData) => {
+  try {
+    const res = await axios.put(`${API_URL}/groups/${groupId}`, groupData);
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const inviteToGroup = async (groupId, userId) => {
+  try {
+    const res = await axios.post(
+      `${API_URL}/groups/${groupId}/invite/${userId}`
+    );
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getUserInvitations = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/groups/invitations`);
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const respondToInvitation = async (groupId, accept) => {
+  try {
+    const res = await axios.put(`${API_URL}/groups/${groupId}/invitation`, {
+      accept,
+    });
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const approveJoinRequest = async (groupId, userId) => {
+  try {
+    const res = await axios.post(
+      `${API_URL}/groups/${groupId}/approve/${userId}`
+    );
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const rejectJoinRequest = async (groupId, userId) => {
+  try {
+    const res = await axios.post(
+      `${API_URL}/groups/${groupId}/reject/${userId}`
+    );
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const removeMember = async (groupId, userId) => {
+  try {
+    const res = await axios.delete(
+      `${API_URL}/groups/${groupId}/members/${userId}`
+    );
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const leaveGroup = async (groupId) => {
+  try {
+    const res = await axios.delete(`${API_URL}/groups/${groupId}/leave`);
+    return res.data;
+  } catch (err) {
+    console.error("Error leaving group:", err.response?.data || err.message);
+    throw err;
+  }
+};

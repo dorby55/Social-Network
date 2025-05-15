@@ -1545,3 +1545,344 @@ select:focus {
   padding: 15px;
   border-bottom: 1px solid var(--border-color);
 }
+
+.manage-group-page {
+  padding: 20px;
+}
+
+.manage-group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.danger-zone .card-header {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.danger-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.danger-info h3 {
+  margin-bottom: 5px;
+  color: var(--danger-color);
+}
+
+.pending-request-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pending-request-item:last-child {
+  border-bottom: none;
+}
+
+.request-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.request-user-info .username {
+  font-weight: 600;
+}
+
+.request-user-info .request-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.request-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.not-authorized {
+  text-align: center;
+  padding: 40px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+}
+
+.not-authorized h2 {
+  margin-bottom: 10px;
+  color: var(--danger-color);
+}
+
+.not-authorized p {
+  margin-bottom: 20px;
+}
+
+.group-invitations-page {
+  padding: 20px;
+}
+
+.invitations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.invitation-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invitation-details {
+  flex: 1;
+}
+
+.invitation-details h3 {
+  margin-bottom: 5px;
+}
+
+.invitation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.private {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.badge.public {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.user-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.user-search-item {
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.user-search-item:last-child {
+  border-bottom: none;
+}
+
+.user-search-item:hover,
+.user-search-item.selected {
+  background-color: rgba(66, 103, 178, 0.1);
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+}
+
+.search-row input {
+  flex: 1;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-info .username {
+  font-weight: 600;
+}
+
+.member-since {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.admin-badge {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  margin-left: 5px;
+}
+
+.member-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-outline.danger {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.btn-outline.danger:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.header-with-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.user-search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.user-search-item:last-child {
+  border-bottom: none;
+}
+
+.user-search-item:hover,
+.user-search-item.selected {
+  background-color: rgba(66, 103, 178, 0.1);
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.search-row input {
+  flex: 1;
+}
+
+.user-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.user-search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.user-search-item:last-child {
+  border-bottom: none;
+}
+
+.user-search-item:hover,
+.user-search-item.selected {
+  background-color: rgba(66, 103, 178, 0.1);
+}
+
+.user-search-item .avatar {
+  width: 30px;
+  height: 30px;
+}
+
+.restricted-group {
+  padding: 20px;
+}
+
+.restricted-message {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.restricted-icon {
+  font-size: 48px;
+  color: var(--danger-color);
+  margin-bottom: 20px;
+}
+
+.restricted-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.private-badge {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+.private-badge i {
+  margin-right: 5px;
+}

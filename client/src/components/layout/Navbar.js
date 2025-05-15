@@ -62,6 +62,9 @@ const Navbar = () => {
                 Friend Requests
                 {/* You could add a badge here to show the number of pending requests */}
               </Link>
+              <Link to="/group-invitations" className="nav-link">
+                Group Invitations
+              </Link>
               <Link to="/statistics" className="nav-link">
                 Stats
               </Link>

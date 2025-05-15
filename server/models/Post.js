@@ -18,7 +18,7 @@ const PostSchema = new Schema({
   },
   mediaType: {
     type: String,
-    enum: ["none", "image", "video"],
+    enum: ["none", "image", "video", "youtube"],
     default: "none",
   },
   mediaUrl: {

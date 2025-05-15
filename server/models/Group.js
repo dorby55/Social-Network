@@ -45,6 +45,24 @@ const GroupSchema = new Schema({
       },
     },
   ],
+
+  // Add this new field for invitations
+  invitations: [
+    {
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+      invitedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      invitedBy: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
