@@ -1,4 +1,3 @@
-// server/models/Group.js
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
@@ -45,8 +44,6 @@ const GroupSchema = new Schema({
       },
     },
   ],
-
-  // Add this new field for invitations
   invitations: [
     {
       user: {

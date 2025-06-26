@@ -1,4 +1,3 @@
-// server/server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -7,22 +6,19 @@ const socketIo = require("socket.io");
 const path = require("path");
 require("dotenv").config();
 
-// Initialize Express app
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", // This will be your React frontend
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "client", "public")));
-// Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
@@ -30,13 +26,10 @@ mongoose
     console.error("MongoDB connection error:", err.message);
     process.exit(1);
   });
-
-// Simple test route
 app.get("/", (req, res) => {
   res.send("API Running");
 });
 
-// Socket.io connection
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
@@ -55,14 +48,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// Import routes (to be implemented)
 app.use("/api/users", require("./routes/users"));
 app.use("/api/groups", require("./routes/groups"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/messages", require("./routes/messages"));
 app.use("/api/stats", require("./routes/stats"));
-
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send("Server Error");

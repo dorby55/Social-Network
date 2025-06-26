@@ -14,7 +14,6 @@ const DeletePostButton = ({ postId, onPostDeleted }) => {
         setIsDeleting(true);
         await axios.delete(`/api/posts/${postId}`);
         setIsDeleting(false);
-        // Call callback to update UI
         onPostDeleted(postId);
       } catch (err) {
         console.error("Error deleting post:", err);

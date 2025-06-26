@@ -1,4 +1,3 @@
-// src/pages/Login.js
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -20,7 +19,6 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Display auth error
   useEffect(() => {
     if (error) {
       setFormError(error);
@@ -37,13 +35,11 @@ const Login = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate form
     if (!email || !password) {
       setFormError("Please enter all fields");
       return;
     }
 
-    // Attempt login
     const success = await login(email, password);
     if (success) {
       navigate("/");

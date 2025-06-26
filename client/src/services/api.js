@@ -1,9 +1,7 @@
-// src/services/api.js
 import axios from "axios";
 
 const API_URL = "http://localhost:5000/api";
 
-// User API calls
 export const getUserProfile = async (userId) => {
   try {
     const res = await axios.get(`${API_URL}/users/${userId}`);
@@ -13,7 +11,6 @@ export const getUserProfile = async (userId) => {
   }
 };
 
-// Group API calls
 export const getAllGroups = async () => {
   try {
     const res = await axios.get(`${API_URL}/groups`);
@@ -50,7 +47,6 @@ export const createGroup = async (groupData) => {
   }
 };
 
-// Request to join a group
 export const joinGroup = async (groupId) => {
   try {
     const res = await axios.post(`${API_URL}/groups/${groupId}/join`);
@@ -60,7 +56,6 @@ export const joinGroup = async (groupId) => {
   }
 };
 
-// Post API calls
 export const getFeed = async () => {
   try {
     const res = await axios.get(`${API_URL}/posts`);
@@ -79,7 +74,6 @@ export const getPostById = async (postId) => {
   }
 };
 
-// Get all posts by a user
 export const getUserPosts = async (userId) => {
   try {
     const res = await axios.get(`${API_URL}/posts/user/${userId}`);
@@ -89,7 +83,6 @@ export const getUserPosts = async (userId) => {
   }
 };
 
-// Get all posts in a group
 export const getGroupPosts = async (groupId) => {
   try {
     const res = await axios.get(`${API_URL}/posts/group/${groupId}`);
@@ -101,10 +94,29 @@ export const getGroupPosts = async (groupId) => {
 
 export const createPost = async (postData) => {
   try {
-    const res = await axios.post(`${API_URL}/posts`, postData);
+    const token = localStorage.getItem("token");
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        "x-auth-token": token,
+      },
+    };
+
+    const payload = {
+      text: postData.text,
+      group: postData.group,
+      mediaType: postData.mediaType || "none",
+      mediaUrl: postData.mediaUrl || "",
+    };
+
+    console.log("Creating post with payload:", payload);
+
+    const res = await axios.post(`${API_URL}/posts`, payload, config);
+    console.log("Post created successfully:", res.data);
     return res.data;
-  } catch (err) {
-    throw err;
+  } catch (error) {
+    console.error("Error creating post:", error.response?.data || error);
+    throw error;
   }
 };
 
@@ -135,6 +147,26 @@ export const deletePost = async (postId) => {
   }
 };
 
+export const updatePost = async (postId, postData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        "x-auth-token": token,
+      },
+    };
+
+    console.log(`Updating post ${postId} with data:`, postData);
+    const res = await axios.put(`${API_URL}/posts/${postId}`, postData, config);
+    console.log("Post updated successfully:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("Error updating post:", error.response?.data || error);
+    throw error;
+  }
+};
+
 export const addComment = async (postId, text) => {
   try {
     const res = await axios.post(`${API_URL}/posts/comment/${postId}`, {
@@ -146,7 +178,55 @@ export const addComment = async (postId, text) => {
   }
 };
 
-// Add a friend
+export const updateComment = async (postId, commentId, commentData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        "x-auth-token": token,
+      },
+    };
+
+    console.log(
+      `Updating comment ${commentId} on post ${postId} with data:`,
+      commentData
+    );
+    const res = await axios.put(
+      `${API_URL}/posts/comment/${postId}/${commentId}`,
+      commentData,
+      config
+    );
+    console.log("Comment updated successfully:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("Error updating comment:", error.response?.data || error);
+    throw error;
+  }
+};
+
+export const deleteComment = async (postId, commentId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const config = {
+      headers: {
+        "x-auth-token": token,
+      },
+    };
+
+    console.log(`Deleting comment ${commentId} from post ${postId}`);
+    const res = await axios.delete(
+      `${API_URL}/posts/comment/${postId}/${commentId}`,
+      config
+    );
+    console.log("Comment deleted successfully");
+    return res.data;
+  } catch (error) {
+    console.error("Error deleting comment:", error.response?.data || error);
+    throw error;
+  }
+};
+
 export const addFriend = async (userId) => {
   try {
     const res = await axios.post(`${API_URL}/users/friends/${userId}`);
@@ -156,7 +236,6 @@ export const addFriend = async (userId) => {
   }
 };
 
-// Remove a friend
 export const removeFriend = async (userId) => {
   try {
     const res = await axios.delete(`${API_URL}/users/friends/${userId}`);
@@ -166,7 +245,6 @@ export const removeFriend = async (userId) => {
   }
 };
 
-// Message API calls
 export const getConversation = async (userId) => {
   try {
     const res = await axios.get(`${API_URL}/messages/${userId}`);
@@ -206,7 +284,6 @@ export const sendMessage = async (receiverId, content) => {
   }
 };
 
-// Statistics API calls
 export const getPostsPerMonth = async () => {
   try {
     const res = await axios.get(`${API_URL}/stats/posts/monthly`);
@@ -265,7 +342,6 @@ export const getFriendRequests = async () => {
   }
 };
 
-// In src/services/api.js - Add or update these functions
 export const searchUsers = async (query) => {
   try {
     const res = await axios.get(
@@ -319,12 +395,10 @@ export const uploadProfilePicture = async (file) => {
       },
     });
 
-    // Add a timestamp to force cache refresh
     if (res.data.profilePicture) {
       const timestamp = new Date().getTime();
       const url = res.data.profilePicture;
 
-      // Add timestamp to URL
       res.data.profilePicture = url.includes("?")
         ? `${url}&t=${timestamp}`
         : `${url}?t=${timestamp}`;

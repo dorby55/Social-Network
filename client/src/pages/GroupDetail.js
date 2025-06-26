@@ -1,4 +1,3 @@
-// src/pages/GroupDetail.js
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -6,8 +5,8 @@ import {
   getGroupById,
   getGroupPosts,
   joinGroup,
-  createPost,
   leaveGroup,
+  getUserInvitations,
 } from "../services/api";
 import PostItem from "../components/post/PostItem";
 import CreatePostForm from "../components/post/CreatePostForm";
@@ -21,43 +20,60 @@ const GroupDetail = () => {
   const [error, setError] = useState(null);
   const [isJoining, setIsJoining] = useState(false);
   const [localPendingRequest, setLocalPendingRequest] = useState(false);
+  const [hasPendingInvitation, setHasPendingInvitation] = useState(false);
 
   const navigate = useNavigate();
 
-  // Check if user is a member of the group
+  // Check if the user is a member in the group
   const isMember = group?.members.some(
     (member) => member.user._id === currentUser._id
   );
 
-  // Check if user is the admin of the group
+  // Check if the user is the admin of the group
   const isAdmin = group?.admin._id === currentUser._id;
 
-  // Check if user has a pending join request
+  // Check if the user has a join request
   const hasPendingRequest =
     localPendingRequest ||
     (group?.pendingRequests &&
       group.pendingRequests.some((request) => {
-        // Check different formats of user data in the pending request
         const requestUserId =
           typeof request.user === "object" ? request.user._id : request.user;
         return requestUserId === currentUser._id;
       }));
 
   useEffect(() => {
+    const checkPendingInvitation = async () => {
+      if (!currentUser || !group) return;
+
+      try {
+        const invitations = await getUserInvitations();
+
+        const hasInvitation = invitations.some(
+          (inv) => inv.group._id === group._id
+        );
+        setHasPendingInvitation(hasInvitation);
+      } catch (error) {
+        console.error("Error checking pending invitations:", error);
+        setHasPendingInvitation(false);
+      }
+    };
+
+    checkPendingInvitation();
+  }, [currentUser, group]);
+
+  useEffect(() => {
     const fetchGroupData = async () => {
       try {
-        // Fetch group details
         const groupData = await getGroupById(id);
         setGroup(groupData);
 
-        // If the group is restricted, show appropriate message
         if (groupData.restricted) {
           setError(
             groupData.message ||
               "This is a private group that you don't have access to. You need an invitation to view its contents."
           );
         } else {
-          // Fetch group posts if we have access
           const postsData = await getGroupPosts(id);
           setPosts(postsData);
         }
@@ -82,7 +98,6 @@ const GroupDetail = () => {
     fetchGroupData();
   }, [id]);
 
-  // Handle join group request
   const handleJoinGroup = async () => {
     setIsJoining(true);
 
@@ -91,7 +106,6 @@ const GroupDetail = () => {
       setLocalPendingRequest(true);
       alert(result.msg || "Join request sent to group admin");
 
-      // Refetch group to update the UI
       const updatedGroup = await getGroupById(id);
       setGroup(updatedGroup);
 
@@ -104,26 +118,26 @@ const GroupDetail = () => {
     }
   };
 
-  // Handle create post in group
-  const handleCreatePost = async (postData) => {
-    try {
-      const updatedPostData = {
-        ...postData,
-        group: id,
-      };
+  const handlePostCreated = (newPost) => {
+    console.log("New post created in group:", newPost);
+    setPosts((prevPosts) => [newPost, ...prevPosts]);
+    setError(null);
+  };
 
-      const newPost = await createPost(updatedPostData);
-      setPosts([newPost, ...posts]);
-      return true;
-    } catch (err) {
-      setError("Error creating post. Please try again.");
-      console.error(err);
-      return false;
-    }
+  const handlePostUpdated = (updatedPost) => {
+    console.log("Post updated in group:", updatedPost);
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
   };
 
   const handlePostDeleted = (deletedPostId) => {
-    setPosts(posts.filter((post) => post._id !== deletedPostId));
+    console.log("Post deleted from group:", deletedPostId);
+    setPosts((prevPosts) =>
+      prevPosts.filter((post) => post._id !== deletedPostId)
+    );
   };
 
   const handleLeaveGroup = async () => {
@@ -133,12 +147,10 @@ const GroupDetail = () => {
 
     try {
       await leaveGroup(id);
-      // Success! Redirect to groups page
-      navigate("/groups"); // <-- Changed from Navigate to navigate
+      navigate("/groups");
     } catch (err) {
       console.error("Error leaving group:", err);
 
-      // Check if it's a 400 error with the admin message (which is expected if admin tries to leave)
       if (
         err.response &&
         err.response.status === 400 &&
@@ -147,21 +159,17 @@ const GroupDetail = () => {
       ) {
         setError(err.response.data.msg);
       } else {
-        // If it's a different error, show general error message
         setError("Error leaving group. Please try again.");
 
-        // Check if the user was actually removed despite the error
         try {
-          // Fetch the group again to see if user is still a member
           const updatedGroup = await getGroupById(id);
           const stillMember = updatedGroup.members.some(
             (member) => (member.user._id || member.user) === currentUser._id
           );
 
           if (!stillMember) {
-            // User was successfully removed, redirect
             alert("You have successfully left the group.");
-            navigate("/groups"); // <-- Changed from Navigate to navigate
+            navigate("/groups");
           }
         } catch (checkErr) {
           console.error(
@@ -220,6 +228,9 @@ const GroupDetail = () => {
     );
   }
 
+  const canRequestToJoin =
+    !isMember && !hasPendingRequest && !hasPendingInvitation;
+
   return (
     <div className="group-detail">
       <div className="group-header">
@@ -240,19 +251,32 @@ const GroupDetail = () => {
 
         <div className="group-header-actions">
           {!isMember ? (
-            hasPendingRequest ? (
-              <button className="btn btn-secondary" disabled>
-                Join Request Pending
-              </button>
-            ) : (
-              <button
-                className="btn btn-primary"
-                onClick={handleJoinGroup}
-                disabled={isJoining}
-              >
-                {isJoining ? "Sending Request..." : "Request to Join"}
-              </button>
-            )
+            <>
+              {hasPendingRequest ? (
+                <button className="btn btn-secondary" disabled>
+                  Join Request Pending
+                </button>
+              ) : hasPendingInvitation ? (
+                <div className="invitation-notice">
+                  <button className="btn btn-info" disabled>
+                    You have a pending invitation
+                  </button>
+                  <p className="invitation-text">
+                    Check your{" "}
+                    <Link to="/group-invitations">Group Invitations</Link> to
+                    respond.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  onClick={handleJoinGroup}
+                  disabled={isJoining}
+                >
+                  {isJoining ? "Sending Request..." : "Request to Join"}
+                </button>
+              )}
+            </>
           ) : (
             !isAdmin && (
               <button
@@ -274,7 +298,9 @@ const GroupDetail = () => {
 
       <div className="group-content">
         <div className="group-posts">
-          {isMember && <CreatePostForm onCreatePost={handleCreatePost} />}
+          {isMember && (
+            <CreatePostForm groupId={id} onPostCreated={handlePostCreated} />
+          )}
 
           <h2>Posts</h2>
 
@@ -284,13 +310,16 @@ const GroupDetail = () => {
               {isMember && <p>Be the first to post something!</p>}
             </div>
           ) : (
-            posts.map((post) => (
-              <PostItem
-                key={post._id}
-                post={post}
-                onPostDeleted={handlePostDeleted}
-              />
-            ))
+            <div className="posts-list">
+              {posts.map((post) => (
+                <PostItem
+                  key={post._id}
+                  post={post}
+                  onPostDeleted={handlePostDeleted}
+                  onPostUpdated={handlePostUpdated}
+                />
+              ))}
+            </div>
           )}
         </div>
 
@@ -312,9 +341,7 @@ const GroupDetail = () => {
             group.pendingRequests.length > 0 && (
               <div className="sidebar-section">
                 <h3>Pending Requests</h3>
-                <ul className="pending-requests-list">
-                  {/* Render pending requests here */}
-                </ul>
+                <ul className="pending-requests-list"></ul>
               </div>
             )}
 

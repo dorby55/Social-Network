@@ -1,4 +1,3 @@
-// src/pages/Profile.js
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -11,7 +10,7 @@ import {
   sendFriendRequest,
 } from "../services/api";
 import PostItem from "../components/post/PostItem";
-import UserItem from "../components/user/UserItem"; // Make sure this is imported
+import UserItem from "../components/user/UserItem";
 import GroupItem from "../components/group/GroupItem";
 import { getCacheBustedUrl } from "../utils/imageUtils";
 
@@ -32,7 +31,6 @@ const Profile = () => {
 
   const navigate = useNavigate();
 
-  // Check if viewing own profile
   const isOwnProfile = currentUser?._id === id;
 
   // Check if user is a friend
@@ -45,16 +43,13 @@ const Profile = () => {
       setLoading(true);
       setError(null);
 
-      // Reset these arrays when loading a new profile
       setFriends([]);
       setUserGroups([]);
-      setActiveTab("posts"); // Reset to posts tab
+      setActiveTab("posts");
       try {
-        // Fetch user profile
         const userData = await getUserProfile(id);
         setProfile(userData);
 
-        // Fetch user posts
         const postsData = await getUserPosts(id);
         setPosts(postsData);
 
@@ -75,10 +70,8 @@ const Profile = () => {
       if (isOwnProfile || !profile) return;
 
       try {
-        // Get my friend requests
         const requests = await getFriendRequests();
 
-        // Check if we've received a request from this user
         const receivedRequest = requests.some(
           (request) => request.user._id === id
         );
@@ -86,8 +79,6 @@ const Profile = () => {
         if (receivedRequest) {
           setFriendRequestStatus("received");
         } else {
-          // Check if current user has sent a request to profile user
-          // This would require a new endpoint, so for now we'll infer this from backend error messages
           setFriendRequestStatus("none");
         }
       } catch (err) {
@@ -98,7 +89,7 @@ const Profile = () => {
     checkFriendRequestStatus();
   }, [id, isOwnProfile, profile, currentUser]);
 
-  // Add a new useEffect to load friends and groups when tabs are clicked
+  // load friends and groups when tabs are clicked
   useEffect(() => {
     const loadTabData = async () => {
       if (!profile) return;
@@ -106,7 +97,6 @@ const Profile = () => {
       if (activeTab === "friends") {
         setLoadingFriends(true);
         try {
-          // Always reload friends data when switching to this tab or changing profiles
           if (profile.friends && profile.friends.length > 0) {
             console.log("Loading friends data for", profile.friends);
             const friendPromises = profile.friends.map((friendId) =>
@@ -133,11 +123,7 @@ const Profile = () => {
           if (profile.groups && profile.groups.length > 0) {
             console.log("Loading groups data for", profile.groups);
 
-            // Import the API function if needed
             const { getGroupById } = await import("../services/api");
-
-            // Instead of Promise.all (which fails if any request fails),
-            // use individual promises with error handling for each group
             const groupsData = [];
 
             for (const groupId of profile.groups) {
@@ -147,12 +133,11 @@ const Profile = () => {
                 groupsData.push(groupData);
               } catch (err) {
                 console.warn(`Couldn't load group ${id}:`, err.message);
-                // Skip this group but continue loading others
               }
             }
 
             setUserGroups(groupsData);
-            setError(null); // Clear any previous errors
+            setError(null);
           } else {
             setUserGroups([]);
           }
@@ -168,22 +153,16 @@ const Profile = () => {
     loadTabData();
   }, [profile, activeTab, currentUser]);
 
-  // Update the tab click handlers
   const handleTabClick = (tab) => {
     setActiveTab(tab);
   };
 
-  // Handle add/remove friend
   const handleFriendAction = async () => {
     setUpdating(true);
 
     try {
       if (isFriend) {
-        // Remove friend
         await removeFriend(id);
-
-        // Update local state to reflect that they are no longer friends
-        // This is the key change to fix the bug
         const updatedProfile = { ...profile };
         if (updatedProfile.friends) {
           updatedProfile.friends = updatedProfile.friends.filter(
@@ -193,20 +172,16 @@ const Profile = () => {
         setProfile(updatedProfile);
         setFriendRequestStatus("none");
       } else if (friendRequestStatus === "received") {
-        // Accept friend request
         await acceptFriendRequest(id);
-        // Refresh profile to update friend status
         const updatedProfile = await getUserProfile(id);
         setProfile(updatedProfile);
       } else {
-        // Send friend request
         await sendFriendRequest(id);
         setFriendRequestStatus("pending");
       }
 
       setError(null);
     } catch (err) {
-      // Check if the error is because a request is already pending
       if (
         err.response &&
         err.response.data &&
@@ -241,10 +216,6 @@ const Profile = () => {
   return (
     <div className="profile-page">
       <div className="profile-header">
-        <div className="profile-cover">
-          {/* Cover photo could be added here */}
-        </div>
-
         <div className="profile-info">
           <div className="profile-avatar">
             <img

@@ -1,4 +1,3 @@
-// src/contexts/SocketContext.js - Improve connection handling
 import React, {
   createContext,
   useState,
@@ -18,7 +17,6 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Clean up function to disconnect socket
     const cleanup = () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -29,7 +27,6 @@ export const SocketProvider = ({ children }) => {
 
     // Only connect if user is authenticated
     if (isAuthenticated && currentUser) {
-      // Initialize socket connection
       const newSocket = io("http://localhost:5000", {
         reconnection: true,
         reconnectionAttempts: 5,
@@ -39,7 +36,6 @@ export const SocketProvider = ({ children }) => {
       socketRef.current = newSocket;
       setSocket(newSocket);
 
-      // Event listeners
       newSocket.on("connect", () => {
         console.log("Socket connected:", newSocket.id);
         setConnected(true);
@@ -55,10 +51,8 @@ export const SocketProvider = ({ children }) => {
         setConnected(false);
       });
 
-      // Clean up on unmount or when auth state changes
       return cleanup;
     } else {
-      // Clean up existing connection if user logs out
       cleanup();
     }
   }, [isAuthenticated, currentUser]);

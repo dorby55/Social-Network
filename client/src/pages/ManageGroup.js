@@ -1,4 +1,3 @@
-// src/pages/ManageGroup.js
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -10,7 +9,7 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   removeMember,
-  searchUsers as searchUsersApi, // Rename to avoid conflict
+  searchUsers as searchUsersApi,
 } from "../services/api";
 
 const ManageGroup = () => {
@@ -36,7 +35,7 @@ const ManageGroup = () => {
     isPrivate: false,
   });
 
-  // Fetch group data on component mount
+  // Fetch group data
   useEffect(() => {
     const fetchGroupData = async () => {
       try {
@@ -44,8 +43,6 @@ const ManageGroup = () => {
         console.log("Group data fetched:", groupData);
 
         setGroup(groupData);
-
-        // Set form data from group
         setFormData({
           name: groupData.name,
           description: groupData.description,
@@ -66,7 +63,6 @@ const ManageGroup = () => {
           setPendingRequests([]);
         }
 
-        // Extract members if they exist
         if (groupData.members && Array.isArray(groupData.members)) {
           setMembers(groupData.members);
         }
@@ -83,7 +79,6 @@ const ManageGroup = () => {
     fetchGroupData();
   }, [id]);
 
-  // Function to refresh group data
   const refreshGroupData = async () => {
     try {
       setLoading(true);
@@ -98,7 +93,6 @@ const ManageGroup = () => {
         isPrivate: refreshedGroup.isPrivate || false,
       });
 
-      // Check if pendingRequests exists and is an array
       if (
         refreshedGroup.pendingRequests &&
         Array.isArray(refreshedGroup.pendingRequests)
@@ -116,7 +110,6 @@ const ManageGroup = () => {
         setPendingRequests([]);
       }
 
-      // Update members
       if (refreshedGroup.members && Array.isArray(refreshedGroup.members)) {
         setMembers(refreshedGroup.members);
       }
@@ -136,14 +129,12 @@ const ManageGroup = () => {
     group?.admin === currentUser?._id ||
     group?.admin?.toString() === currentUser?._id?.toString();
 
-  // Handle form input changes
   const onChange = (e) => {
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  // Handle form submission (update group)
   const handleUpdateGroup = async (e) => {
     e.preventDefault();
 
@@ -155,24 +146,17 @@ const ManageGroup = () => {
     setUpdating(true);
 
     try {
-      // Make the API call to update the group
       const updatedGroup = await updateGroup(id, formData);
-
-      // Log for debugging
-      console.log("Group updated successfully:", updatedGroup);
-
-      // Update both the form data and the group state
       setFormData({
         name: updatedGroup.name,
         description: updatedGroup.description,
         isPrivate: updatedGroup.isPrivate || false,
       });
 
-      // Important: Make sure to update the full group object with all properties
       setGroup({
-        ...group, // Keep any properties that might not be returned in the update
-        ...updatedGroup, // Override with new properties
-        admin: group.admin, // Explicitly preserve the admin object
+        ...group,
+        ...updatedGroup,
+        admin: group.admin,
       });
 
       setError(null);
@@ -185,14 +169,12 @@ const ManageGroup = () => {
     }
   };
 
-  // Handle group deletion
   const handleDeleteGroup = async () => {
     if (!isAdmin) {
       setError("You don't have permission to delete this group");
       return;
     }
 
-    // Confirm deletion
     if (
       !window.confirm(
         "Are you sure you want to delete this group? This action cannot be undone."
@@ -213,22 +195,18 @@ const ManageGroup = () => {
     }
   };
 
-  // Function to search for users (renamed to avoid conflict)
   const searchForUsers = async (term) => {
     if (!term || term.length < 2) return;
 
     setLoadingUsers(true);
     try {
       console.log("Searching for users with term:", term);
-      const users = await searchUsersApi(term); // Use the renamed import
+      const users = await searchUsersApi(term);
       console.log("Search results:", users);
 
-      // Filter out users who are already members
       const filteredUsers = users.filter((user) => {
-        // Skip if it's the current user (admin)
         if (user._id === currentUser._id) return false;
 
-        // Check if user is already a member
         return !members.some((member) => {
           const memberId = member.user._id || member.user;
           return memberId === user._id;
@@ -244,12 +222,10 @@ const ManageGroup = () => {
     }
   };
 
-  // Handle member request approval/rejection
   const handleMemberRequest = async (userId, action) => {
     try {
       if (action === "approve") {
         await approveJoinRequest(id, userId);
-        // Remove the request from the local state immediately for better UI feedback
         setPendingRequests((prevRequests) =>
           prevRequests.filter(
             (req) =>
@@ -258,10 +234,7 @@ const ManageGroup = () => {
           )
         );
 
-        // Also refresh the full group data
         await refreshGroupData();
-
-        // Provide user feedback
         alert(
           action === "approve"
             ? "User approved successfully!"
@@ -269,7 +242,6 @@ const ManageGroup = () => {
         );
       } else {
         await rejectJoinRequest(id, userId);
-        // Remove the request from the local state immediately
         setPendingRequests((prevRequests) =>
           prevRequests.filter(
             (req) =>
@@ -284,7 +256,6 @@ const ManageGroup = () => {
     }
   };
 
-  // Add function to invite a user
   const handleInviteUser = async () => {
     if (!selectedUser) {
       setError("Please select a user to invite");
@@ -298,15 +269,12 @@ const ManageGroup = () => {
       const result = await inviteToGroup(id, selectedUser);
       console.log("Invitation result:", result);
 
-      // Clear search results and selection
       setUserSearchTerm("");
       setSelectedUser("");
       setAvailableUsers([]);
 
-      // Show success message
       alert(result.msg || "User invited successfully!");
 
-      // Refresh the group data
       await refreshGroupData();
     } catch (err) {
       console.error("Error inviting user:", err.response?.data || err);
@@ -318,7 +286,6 @@ const ManageGroup = () => {
     }
   };
 
-  // Handle removing a member
   const handleRemoveMember = async (userId) => {
     if (
       !window.confirm(
@@ -331,7 +298,6 @@ const ManageGroup = () => {
     try {
       await removeMember(id, userId);
 
-      // Update local state to remove the member
       setMembers((prevMembers) =>
         prevMembers.filter(
           (member) =>
@@ -359,7 +325,6 @@ const ManageGroup = () => {
     return <div className="not-found">Group not found</div>;
   }
 
-  // Redirect if not admin
   if (!isAdmin) {
     return (
       <div className="not-authorized">
@@ -451,7 +416,6 @@ const ManageGroup = () => {
           </div>
         </div>
 
-        {/* Membership Requests Card */}
         <div className="card">
           <div className="card-header">
             <div className="header-with-actions">
@@ -470,7 +434,6 @@ const ManageGroup = () => {
             {pendingRequests.length > 0 ? (
               <div className="pending-requests-list">
                 {pendingRequests.map((request) => {
-                  // Get the user data, handling both populated and unpopulated cases
                   const userId = request.user._id || request.user;
                   const username =
                     request.user.username || `User ID: ${userId}`;
@@ -516,7 +479,6 @@ const ManageGroup = () => {
           </div>
         </div>
 
-        {/* Invite Users Card - New Section */}
         <div className="card">
           <div className="card-header">
             <h2>Invite Users</h2>
@@ -533,7 +495,7 @@ const ManageGroup = () => {
                     onChange={(e) => {
                       setUserSearchTerm(e.target.value);
                       if (e.target.value.length >= 2) {
-                        searchForUsers(e.target.value); // Use renamed function
+                        searchForUsers(e.target.value);
                       }
                     }}
                     placeholder="Type username to search (min 2 characters)..."
@@ -590,7 +552,6 @@ const ManageGroup = () => {
             {members.length > 0 ? (
               <div className="members-list">
                 {members.map((member) => {
-                  // Extract user information, handling both populated and unpopulated cases
                   const userId = member.user._id || member.user;
                   const username = member.user.username || `User ID: ${userId}`;
                   const isAdmin = userId === (group.admin._id || group.admin);

@@ -1,9 +1,7 @@
-// src/components/group/GroupItem.js
 import React from "react";
 import { Link } from "react-router-dom";
 
 const GroupItem = ({ group }) => {
-  // Check if this is a restricted group
   const isRestricted = group.restricted === true;
 
   return (

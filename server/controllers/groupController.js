@@ -1,11 +1,7 @@
-// server/controllers/groupController.js
 const Group = require("../models/Group");
 const User = require("../models/User");
 const { validationResult } = require("express-validator");
 
-// @route   POST api/groups
-// @desc    Create a new group
-// @access  Private
 exports.createGroup = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -15,7 +11,6 @@ exports.createGroup = async (req, res) => {
   try {
     const { name, description, isPrivate } = req.body;
 
-    // Create new group
     const newGroup = new Group({
       name,
       description,
@@ -26,7 +21,6 @@ exports.createGroup = async (req, res) => {
 
     const group = await newGroup.save();
 
-    // Add group to user's groups
     await User.findByIdAndUpdate(req.user.id, { $push: { groups: group._id } });
 
     res.json(group);
@@ -36,12 +30,8 @@ exports.createGroup = async (req, res) => {
   }
 };
 
-// @route   GET api/groups
-// @desc    Get all public groups
-// @access  Private
 exports.getAllGroups = async (req, res) => {
   try {
-    // Get all public groups and groups where the user is a member
     const groups = await Group.find({
       $or: [
         { isPrivate: false },
@@ -58,9 +48,6 @@ exports.getAllGroups = async (req, res) => {
   }
 };
 
-// @route   GET api/groups/my
-// @desc    Get user's groups
-// @access  Private
 exports.getUserGroups = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate({
@@ -77,9 +64,6 @@ exports.getUserGroups = async (req, res) => {
   }
 };
 
-// @route   GET api/groups/:id
-// @desc    Get group by ID
-// @access  Private
 exports.getGroupById = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
@@ -91,29 +75,23 @@ exports.getGroupById = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Allow access if:
-    // 1. The group is public, OR
-    // 2. Current user is the admin, OR
-    // 3. Current user is a member
     const isAdmin = group.admin._id.toString() === req.user.id;
     const isMember = group.members.some(
       (member) => member.user._id.toString() === req.user.id
     );
 
     if (group.isPrivate && !isAdmin && !isMember) {
-      // For private groups, return limited information
       return res.json({
         _id: group._id,
         name: group.name,
         isPrivate: true,
         admin: group.admin,
-        members: [], // Don't expose member details for private groups
-        restricted: true, // Flag to indicate restricted access
+        members: [],
+        restricted: true,
         message: "This is a private group you don't have access to",
       });
     }
 
-    // Return full group details for public groups or when user has access
     res.json(group);
   } catch (err) {
     console.error(err.message);
@@ -124,9 +102,6 @@ exports.getGroupById = async (req, res) => {
   }
 };
 
-// @route   PUT api/groups/:id
-// @desc    Update a group
-// @access  Private
 exports.updateGroup = async (req, res) => {
   try {
     const { name, description, isPrivate } = req.body;
@@ -136,12 +111,10 @@ exports.updateGroup = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is admin
     if (group.admin.toString() !== req.user.id) {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Update fields
     if (name) group.name = name;
     if (description) group.description = description;
     if (isPrivate !== undefined) group.isPrivate = isPrivate;
@@ -154,9 +127,6 @@ exports.updateGroup = async (req, res) => {
   }
 };
 
-// @route   DELETE api/groups/:id
-// @desc    Delete a group
-// @access  Private
 exports.deleteGroup = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
@@ -165,12 +135,10 @@ exports.deleteGroup = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is admin
     if (group.admin.toString() !== req.user.id) {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Remove group from all members' groups array
     for (const member of group.members) {
       await User.findByIdAndUpdate(member.user, {
         $pull: { groups: group._id },
@@ -185,9 +153,6 @@ exports.deleteGroup = async (req, res) => {
   }
 };
 
-// @route   POST api/groups/:id/join
-// @desc    Request to join a group
-// @access  Private
 exports.joinGroup = async (req, res) => {
   try {
     console.log(
@@ -200,7 +165,6 @@ exports.joinGroup = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is already a member
     const isMember = group.members.some(
       (member) => member.user.toString() === req.user.id
     );
@@ -209,7 +173,6 @@ exports.joinGroup = async (req, res) => {
       return res.status(400).json({ msg: "Already a member" });
     }
 
-    // Check if user already has a pending request
     const hasPendingRequest = group.pendingRequests.some(
       (request) => request.user.toString() === req.user.id
     );
@@ -218,12 +181,23 @@ exports.joinGroup = async (req, res) => {
       return res.status(400).json({ msg: "Request already pending" });
     }
 
-    // For both public and private groups, add to pending requests
+    const hadInvitation =
+      group.invitations &&
+      group.invitations.some((inv) => inv.user.toString() === req.user.id);
+
+    if (hadInvitation) {
+      group.invitations = group.invitations.filter(
+        (inv) => inv.user.toString() !== req.user.id
+      );
+      console.log(
+        `User ${req.user.id} sent join request - removed pending invitation`
+      );
+    }
+
     console.log(
       `Adding user ${req.user.id} to pending requests for group ${req.params.id}`
     );
 
-    // Ensure we're pushing a proper object with user and requestedAt fields
     group.pendingRequests.push({
       user: req.user.id,
       requestedAt: new Date(),
@@ -234,7 +208,11 @@ exports.joinGroup = async (req, res) => {
     await group.save();
     console.log(`Group saved with new pending request`);
 
-    res.json({ msg: "Join request sent to group admin" });
+    const message = hadInvitation
+      ? "Join request sent to group admin. Your pending invitation was automatically cancelled."
+      : "Join request sent to group admin";
+
+    res.json({ msg: message });
   } catch (err) {
     console.error("Error in joinGroup:", err);
     res.status(500).send("Server error");
@@ -255,7 +233,6 @@ exports.inviteToGroup = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is admin or a member
     const isAdmin = group.admin.toString() === req.user.id;
     const isMember = group.members.some(
       (member) => member.user.toString() === req.user.id
@@ -268,14 +245,12 @@ exports.inviteToGroup = async (req, res) => {
         .json({ msg: "Only members can invite others to join" });
     }
 
-    // Check if invited user exists
     const invitedUser = await User.findById(userId);
     if (!invitedUser) {
       console.log(`User to invite (${userId}) not found`);
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // Check if user is already a member
     const isAlreadyMember = group.members.some(
       (member) => member.user.toString() === userId
     );
@@ -285,7 +260,6 @@ exports.inviteToGroup = async (req, res) => {
       return res.status(400).json({ msg: "User is already a member" });
     }
 
-    // Check if user already has an invitation
     const hasInvitation =
       group.invitations &&
       group.invitations.some(
@@ -297,12 +271,21 @@ exports.inviteToGroup = async (req, res) => {
       return res.status(400).json({ msg: "User has already been invited" });
     }
 
-    // Initialize invitations array if it doesn't exist
+    const hadJoinRequest = group.pendingRequests.some(
+      (request) => request.user.toString() === userId
+    );
+
+    if (hadJoinRequest) {
+      group.pendingRequests = group.pendingRequests.filter(
+        (request) => request.user.toString() !== userId
+      );
+      console.log(`User ${userId} was invited - removed pending join request`);
+    }
+
     if (!group.invitations) {
       group.invitations = [];
     }
 
-    // Add to invitations - ensure invitedBy is correctly set
     console.log(
       `Adding user ${userId} to invitations, invited by ${req.user.id}`
     );
@@ -316,7 +299,11 @@ exports.inviteToGroup = async (req, res) => {
     await group.save();
 
     console.log(`Invitation saved successfully`);
-    res.json({ msg: "Invitation sent successfully" });
+    const message = hadJoinRequest
+      ? "Invitation sent successfully. The user's pending join request was automatically cancelled."
+      : "Invitation sent successfully";
+
+    res.json({ msg: message });
   } catch (err) {
     console.error("Error in inviteToGroup:", err);
     res.status(500).send("Server error");
@@ -332,7 +319,6 @@ exports.respondToInvitation = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Find the invitation
     const invitationIndex = group.invitations.findIndex(
       (invitation) => invitation.user.toString() === req.user.id
     );
@@ -341,41 +327,51 @@ exports.respondToInvitation = async (req, res) => {
       return res.status(404).json({ msg: "Invitation not found" });
     }
 
-    // Remove the invitation
-    group.invitations.splice(invitationIndex, 1);
+    let hadJoinRequest = false;
 
     if (accept) {
-      // Add to members if accepted
       group.members.push({ user: req.user.id });
 
-      // Add group to user's groups
+      hadJoinRequest = group.pendingRequests.some(
+        (request) => request.user.toString() === req.user.id
+      );
+
+      if (hadJoinRequest) {
+        group.pendingRequests = group.pendingRequests.filter(
+          (request) => request.user.toString() !== req.user.id
+        );
+        console.log(
+          `User ${req.user.id} accepted invitation - removed any pending join requests`
+        );
+      }
+
       await User.findByIdAndUpdate(req.user.id, {
         $push: { groups: group._id },
       });
-
-      await group.save();
-      res.json({ msg: "Invitation accepted" });
-    } else {
-      // Just remove invitation if declined
-      await group.save();
-      res.json({ msg: "Invitation declined" });
     }
+
+    group.invitations.splice(invitationIndex, 1);
+
+    await group.save();
+
+    res.json({
+      msg: accept ? "Invitation accepted" : "Invitation declined",
+      removedJoinRequest: accept && hadJoinRequest,
+    });
   } catch (err) {
-    console.error(err.message);
+    console.error("Error in respondToInvitation:", err);
     res.status(500).send("Server error");
   }
 };
 
 exports.getUserInvitations = async (req, res) => {
   try {
-    // Find all groups where the user has pending invitations
     const groups = await Group.find({
       "invitations.user": req.user.id,
     })
       .populate("admin", ["username", "profilePicture"])
-      .populate("invitations.invitedBy", ["username", "profilePicture"]); // Add this line to populate the inviter
+      .populate("invitations.invitedBy", ["username", "profilePicture"]);
 
-    // Extract invitation details
     const invitations = groups.map((group) => {
       const invitation = group.invitations.find(
         (inv) => inv.user.toString() === req.user.id
@@ -390,7 +386,7 @@ exports.getUserInvitations = async (req, res) => {
         },
         invitation: {
           invitedAt: invitation.invitedAt,
-          invitedBy: invitation.invitedBy, // This will now be a populated user object
+          invitedBy: invitation.invitedBy,
         },
       };
     });
@@ -402,9 +398,6 @@ exports.getUserInvitations = async (req, res) => {
   }
 };
 
-// @route   POST api/groups/:id/approve/:userId
-// @desc    Approve a join request
-// @access  Private
 exports.approveJoinRequest = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
@@ -413,12 +406,10 @@ exports.approveJoinRequest = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is admin
     if (group.admin.toString() !== req.user.id) {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Find the request
     const requestIndex = group.pendingRequests.findIndex(
       (request) => request.user.toString() === req.params.userId
     );
@@ -427,15 +418,11 @@ exports.approveJoinRequest = async (req, res) => {
       return res.status(404).json({ msg: "Request not found" });
     }
 
-    // Add to members
     group.members.push({ user: req.params.userId });
-
-    // Remove from pending requests
     group.pendingRequests.splice(requestIndex, 1);
 
     await group.save();
 
-    // Add group to user's groups
     await User.findByIdAndUpdate(req.params.userId, {
       $push: { groups: group._id },
     });
@@ -447,9 +434,6 @@ exports.approveJoinRequest = async (req, res) => {
   }
 };
 
-// @route   POST api/groups/:id/reject/:userId
-// @desc    Reject a join request
-// @access  Private
 exports.rejectJoinRequest = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
@@ -458,12 +442,10 @@ exports.rejectJoinRequest = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is admin
     if (group.admin.toString() !== req.user.id) {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Find the request
     const requestIndex = group.pendingRequests.findIndex(
       (request) => request.user.toString() === req.params.userId
     );
@@ -472,7 +454,6 @@ exports.rejectJoinRequest = async (req, res) => {
       return res.status(404).json({ msg: "Request not found" });
     }
 
-    // Remove from pending requests
     group.pendingRequests.splice(requestIndex, 1);
 
     await group.save();
@@ -484,51 +465,6 @@ exports.rejectJoinRequest = async (req, res) => {
   }
 };
 
-// @route   POST api/groups/:id/leave
-// @desc    Leave a group
-// @access  Private
-exports.leaveGroup = async (req, res) => {
-  try {
-    const group = await Group.findById(req.params.id);
-
-    if (!group) {
-      return res.status(404).json({ msg: "Group not found" });
-    }
-
-    // Check if user is a member
-    const memberIndex = group.members.findIndex(
-      (member) => member.user.toString() === req.user.id
-    );
-
-    if (memberIndex === -1) {
-      return res.status(400).json({ msg: "Not a member" });
-    }
-
-    // Admin cannot leave without assigning a new admin
-    if (group.admin.toString() === req.user.id) {
-      return res
-        .status(400)
-        .json({ msg: "Admin cannot leave. Transfer admin role first." });
-    }
-
-    // Remove from members
-    group.members.splice(memberIndex, 1);
-
-    await group.save();
-
-    // Remove group from user's groups
-    await User.findByIdAndUpdate(req.user.id, { $pull: { groups: group._id } });
-
-    res.json({ msg: "Left group" });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
-  }
-};
-
-// @route   GET api/groups/search
-// @desc    Search groups by criteria
-// @access  Private
 exports.searchGroups = async (req, res) => {
   try {
     const { name } = req.query;
@@ -537,8 +473,6 @@ exports.searchGroups = async (req, res) => {
       return res.status(400).json({ msg: "Search term required" });
     }
 
-    // Search for groups by name (case-insensitive)
-    // Only return public groups or groups user is a member of
     const groups = await Group.find({
       name: { $regex: name, $options: "i" },
       $or: [
@@ -556,9 +490,6 @@ exports.searchGroups = async (req, res) => {
   }
 };
 
-// @route   DELETE api/groups/:id/members/:userId
-// @desc    Remove a member from a group (admin only)
-// @access  Private
 exports.removeMember = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
@@ -567,12 +498,10 @@ exports.removeMember = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is admin
     if (group.admin.toString() !== req.user.id) {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Check if the member exists
     const memberIndex = group.members.findIndex(
       (member) => member.user.toString() === req.params.userId
     );
@@ -581,16 +510,13 @@ exports.removeMember = async (req, res) => {
       return res.status(404).json({ msg: "Member not found" });
     }
 
-    // Check if trying to remove the admin (which should not be allowed)
     if (req.params.userId === group.admin.toString()) {
       return res.status(400).json({ msg: "Cannot remove group admin" });
     }
 
-    // Remove member from group
     group.members.splice(memberIndex, 1);
     await group.save();
 
-    // Remove group from user's groups array
     await User.findByIdAndUpdate(req.params.userId, {
       $pull: { groups: group._id },
     });
@@ -602,9 +528,6 @@ exports.removeMember = async (req, res) => {
   }
 };
 
-// @route   DELETE api/groups/:id/leave
-// @desc    Leave a group
-// @access  Private
 exports.leaveGroup = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
@@ -613,7 +536,6 @@ exports.leaveGroup = async (req, res) => {
       return res.status(404).json({ msg: "Group not found" });
     }
 
-    // Check if user is a member
     const memberIndex = group.members.findIndex(
       (member) => member.user.toString() === req.user.id
     );
@@ -622,20 +544,15 @@ exports.leaveGroup = async (req, res) => {
       return res.status(400).json({ msg: "Not a member of this group" });
     }
 
-    // Check if user is the admin
     if (group.admin.toString() === req.user.id) {
       return res.status(400).json({
         msg: "Admin cannot leave the group. Transfer ownership first or delete the group.",
       });
     }
 
-    // Remove member from group (using splice instead of remove)
     group.members.splice(memberIndex, 1);
 
-    // Use save() instead of remove()
     await group.save();
-
-    // Remove group from user's groups array
     await User.findByIdAndUpdate(req.user.id, {
       $pull: { groups: group._id },
     });

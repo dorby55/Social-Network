@@ -1,4 +1,3 @@
-// src/pages/Statistics.js
 import React from "react";
 import PostsPerMonthChart from "../components/stats/PostsPerMonthChart";
 import GroupsByMembersChart from "../components/stats/GroupsByMembersChart";

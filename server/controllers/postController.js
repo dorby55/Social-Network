@@ -1,53 +1,40 @@
-// server/controllers/postController.js
 const Post = require("../models/Post");
 const Group = require("../models/Group");
 const User = require("../models/User");
 const { validationResult } = require("express-validator");
 
-// @route   POST api/posts
-// @desc    Create a post
-// @access  Private
 exports.createPost = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log("Validation errors:", errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
+    console.log("Received post data:", req.body);
+
     const { text, group, mediaType, mediaUrl } = req.body;
 
-    let finalMediaUrl = mediaUrl;
-    let finalMediaType = mediaType;
-
-    if (mediaType === "youtube" && mediaUrl) {
-      // Extract YouTube video ID
-      let videoId = "";
-
-      // Handle various YouTube URL formats
-      if (mediaUrl.includes("youtube.com/watch?v=")) {
-        const urlObj = new URL(mediaUrl);
-        videoId = urlObj.searchParams.get("v");
-      } else if (mediaUrl.includes("youtu.be/")) {
-        videoId = mediaUrl.split("youtu.be/")[1].split("?")[0];
-      } else if (mediaUrl.includes("youtube.com/embed/")) {
-        videoId = mediaUrl.split("youtube.com/embed/")[1].split("?")[0];
-      }
-
-      if (videoId) {
-        // Set the embed URL
-        finalMediaUrl = `https://www.youtube.com/embed/${videoId}`;
-        finalMediaType = "youtube";
-      } else {
-        // Invalid YouTube URL
-        return res.status(400).json({ msg: "Invalid YouTube URL" });
+    if (!text || text.trim().length === 0) {
+      if (!mediaType || mediaType === "none" || !mediaUrl) {
+        console.log("Error: No text content or media provided");
+        return res
+          .status(400)
+          .json({ msg: "Post must contain either text or media" });
       }
     }
 
-    // If posting to a group, check if user is a member
+    const validMediaTypes = ["none", "image", "video"];
+    const finalMediaType =
+      mediaType && validMediaTypes.includes(mediaType) ? mediaType : "none";
+    const finalMediaUrl = finalMediaType !== "none" ? mediaUrl || "" : "";
+
     if (group) {
+      console.log("Checking group membership for group:", group);
       const groupDoc = await Group.findById(group);
 
       if (!groupDoc) {
+        console.log("Group not found:", group);
         return res.status(404).json({ msg: "Group not found" });
       }
 
@@ -56,45 +43,39 @@ exports.createPost = async (req, res) => {
       );
 
       if (!isMember) {
+        console.log("User not a member of group:", req.user.id, group);
         return res.status(403).json({ msg: "You must be a member to post" });
       }
     }
 
-    // Create new post
     const newPost = new Post({
-      text,
+      text: text.trim() || "",
       user: req.user.id,
-      group,
-      mediaType: finalMediaType || "none",
-      mediaUrl: finalMediaUrl || "",
+      group: group || null,
+      mediaType: finalMediaType,
+      mediaUrl: finalMediaUrl,
     });
+
+    console.log("Creating post:", newPost);
 
     const post = await newPost.save();
 
-    // Populate user info
     await post.populate("user", ["username", "profilePicture"]);
 
+    console.log("Post created successfully:", post._id);
     res.json(post);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    console.error("Error creating post:", err.message);
+    console.error("Full error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
 
-// @route   GET api/posts
-// @desc    Get all posts (feed)
-// @access  Private
 exports.getFeed = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-
-    // Get user's friends
     const friends = user.friends;
-
-    // Get user's groups
     const groups = user.groups;
-
-    // Find posts from friends and groups
     const posts = await Post.find({
       $or: [
         { user: { $in: [...friends, req.user.id] } },
@@ -113,9 +94,6 @@ exports.getFeed = async (req, res) => {
   }
 };
 
-// @route   GET api/posts/:id
-// @desc    Get post by ID
-// @access  Private
 exports.getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
@@ -127,7 +105,6 @@ exports.getPostById = async (req, res) => {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Check if post is in a private group
     if (post.group) {
       const group = await Group.findById(post.group);
 
@@ -152,39 +129,39 @@ exports.getPostById = async (req, res) => {
   }
 };
 
-// @route   PUT api/posts/:id
-// @desc    Update a post
-// @access  Private
 exports.updatePost = async (req, res) => {
   try {
-    const { text, mediaType, mediaUrl } = req.body;
+    const { text, mediaType, mediaUrl, content } = req.body;
     let post = await Post.findById(req.params.id);
 
     if (!post) {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Check if user owns the post
     if (post.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: "Not authorized" });
     }
 
-    // Update fields
     if (text) post.text = text;
+    if (content) post.text = content;
     if (mediaType) post.mediaType = mediaType;
     if (mediaUrl) post.mediaUrl = mediaUrl;
 
+    post.editedAt = new Date();
+
     await post.save();
+    await post.populate("user", ["username", "profilePicture"]);
+
     res.json(post);
   } catch (err) {
     console.error(err.message);
+    if (err.kind === "ObjectId") {
+      return res.status(404).json({ msg: "Post not found" });
+    }
     res.status(500).send("Server error");
   }
 };
 
-// @route   DELETE api/posts/:id
-// @desc    Delete a post
-// @access  Private
 exports.deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -193,9 +170,7 @@ exports.deletePost = async (req, res) => {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Check if user owns the post or is group admin
     if (post.user.toString() !== req.user.id) {
-      // If post is in a group, check if user is the group admin
       if (post.group) {
         const group = await Group.findById(post.group);
         if (!group || group.admin.toString() !== req.user.id) {
@@ -214,9 +189,6 @@ exports.deletePost = async (req, res) => {
   }
 };
 
-// @route   PUT api/posts/like/:id
-// @desc    Like a post
-// @access  Private
 exports.likePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -225,7 +197,6 @@ exports.likePost = async (req, res) => {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Check if post is in a private group
     if (post.group) {
       const group = await Group.findById(post.group);
 
@@ -240,7 +211,6 @@ exports.likePost = async (req, res) => {
       }
     }
 
-    // Check if post has already been liked by user
     if (post.likes.some((like) => like.toString() === req.user.id)) {
       return res.status(400).json({ msg: "Post already liked" });
     }
@@ -255,9 +225,6 @@ exports.likePost = async (req, res) => {
   }
 };
 
-// @route   PUT api/posts/unlike/:id
-// @desc    Unlike a post
-// @access  Private
 exports.unlikePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -266,7 +233,6 @@ exports.unlikePost = async (req, res) => {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Check if post is in a private group
     if (post.group) {
       const group = await Group.findById(post.group);
 
@@ -281,12 +247,10 @@ exports.unlikePost = async (req, res) => {
       }
     }
 
-    // Check if post has been liked by user
     if (!post.likes.some((like) => like.toString() === req.user.id)) {
       return res.status(400).json({ msg: "Post has not yet been liked" });
     }
 
-    // Remove like
     post.likes = post.likes.filter((like) => like.toString() !== req.user.id);
     await post.save();
 
@@ -297,9 +261,6 @@ exports.unlikePost = async (req, res) => {
   }
 };
 
-// @route   POST api/posts/comment/:id
-// @desc    Comment on a post
-// @access  Private
 exports.addComment = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -313,7 +274,6 @@ exports.addComment = async (req, res) => {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Check if post is in a private group
     if (post.group) {
       const group = await Group.findById(post.group);
 
@@ -335,10 +295,7 @@ exports.addComment = async (req, res) => {
 
     post.comments.unshift(newComment);
     await post.save();
-
-    // Populate user info in the comments
     await post.populate("comments.user", ["username", "profilePicture"]);
-
     res.json(post.comments);
   } catch (err) {
     console.error(err.message);
@@ -346,10 +303,12 @@ exports.addComment = async (req, res) => {
   }
 };
 
-// @route   DELETE api/posts/comment/:id/:comment_id
-// @desc    Delete comment
-// @access  Private
-exports.deleteComment = async (req, res) => {
+exports.updateComment = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const post = await Post.findById(req.params.id);
 
@@ -357,7 +316,6 @@ exports.deleteComment = async (req, res) => {
       return res.status(404).json({ msg: "Post not found" });
     }
 
-    // Find comment
     const comment = post.comments.find(
       (comment) => comment._id.toString() === req.params.comment_id
     );
@@ -366,12 +324,42 @@ exports.deleteComment = async (req, res) => {
       return res.status(404).json({ msg: "Comment not found" });
     }
 
-    // Check if user owns the comment or post
+    if (comment.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: "Not authorized" });
+    }
+
+    comment.text = req.body.text;
+    comment.editedAt = new Date();
+
+    await post.save();
+    await post.populate("comments.user", ["username", "profilePicture"]);
+    res.json(post.comments);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};
+
+exports.deleteComment = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    const comment = post.comments.find(
+      (comment) => comment._id.toString() === req.params.comment_id
+    );
+
+    if (!comment) {
+      return res.status(404).json({ msg: "Comment not found" });
+    }
+
     if (
       comment.user.toString() !== req.user.id &&
       post.user.toString() !== req.user.id
     ) {
-      // If post is in a group, check if user is the group admin
       if (post.group) {
         const group = await Group.findById(post.group);
         if (!group || group.admin.toString() !== req.user.id) {
@@ -382,7 +370,6 @@ exports.deleteComment = async (req, res) => {
       }
     }
 
-    // Remove comment
     post.comments = post.comments.filter(
       (comment) => comment._id.toString() !== req.params.comment_id
     );
@@ -395,9 +382,6 @@ exports.deleteComment = async (req, res) => {
   }
 };
 
-// @route   GET api/posts/user/:userId
-// @desc    Get all posts by user
-// @access  Private
 exports.getUserPosts = async (req, res) => {
   try {
     const posts = await Post.find({ user: req.params.userId })
@@ -412,12 +396,8 @@ exports.getUserPosts = async (req, res) => {
   }
 };
 
-// @route   GET api/posts/group/:groupId
-// @desc    Get all posts in a group
-// @access  Private
 exports.getGroupPosts = async (req, res) => {
   try {
-    // Check if user has access to the group
     const group = await Group.findById(req.params.groupId);
 
     if (!group) {
@@ -445,9 +425,6 @@ exports.getGroupPosts = async (req, res) => {
   }
 };
 
-// @route   GET api/posts/search
-// @desc    Search posts by criteria
-// @access  Private
 exports.searchPosts = async (req, res) => {
   try {
     const { text } = req.query;
@@ -456,17 +433,13 @@ exports.searchPosts = async (req, res) => {
       return res.status(400).json({ msg: "Search term required" });
     }
 
-    // First, get all groups the user is a member of
     const user = await User.findById(req.user.id);
-
-    // Search for posts containing the text (case-insensitive)
-    // Only return posts from public content or content user has access to
     const posts = await Post.find({
       text: { $regex: text, $options: "i" },
       $or: [
-        { user: req.user.id }, // User's own posts
-        { group: null }, // Public posts (not in any group)
-        { group: { $in: user.groups } }, // Posts in groups user is a member of
+        { user: req.user.id },
+        { group: null },
+        { group: { $in: user.groups } },
       ],
     })
       .populate("user", "username profilePicture")
@@ -483,15 +456,11 @@ exports.searchPosts = async (req, res) => {
 
 exports.uploadPostMedia = async (req, res) => {
   try {
-    // Check if file exists
     if (!req.file) {
       return res.status(400).json({ msg: "No file uploaded" });
     }
 
-    // Create the file URL
     const fileUrl = `/uploads/posts/${req.file.filename}`;
-
-    // Determine media type from mimetype
     const mediaType = req.file.mimetype.startsWith("image/")
       ? "image"
       : "video";

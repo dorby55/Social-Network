@@ -1,4 +1,3 @@
-// server/utils/seeder.js
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -7,7 +6,6 @@ const Post = require("../models/Post");
 const Message = require("../models/Message");
 require("dotenv").config();
 
-// Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected for seeding"))
@@ -16,7 +14,6 @@ mongoose
     process.exit(1);
   });
 
-// Clear database
 const clearDB = async () => {
   try {
     await Message.deleteMany({});
@@ -30,7 +27,6 @@ const clearDB = async () => {
   }
 };
 
-// Create seed data
 const seedData = async () => {
   try {
     // Create users
@@ -73,7 +69,6 @@ const seedData = async () => {
 
     console.log(`${users.length} users created`);
 
-    // Add friends
     const john = users.find((user) => user.username === "john");
     const sarah = users.find((user) => user.username === "sarah");
     const mike = users.find((user) => user.username === "mike");
@@ -87,7 +82,6 @@ const seedData = async () => {
     await Promise.all([john.save(), sarah.save(), mike.save(), emma.save()]);
     console.log("Friendships created");
 
-    // Create groups
     const groups = await Group.insertMany([
       {
         name: "Developers",
@@ -115,7 +109,6 @@ const seedData = async () => {
 
     console.log(`${groups.length} groups created`);
 
-    // Update users with group memberships
     john.groups.push(groups[0]._id);
     sarah.groups.push(groups[0]._id, groups[1]._id);
     mike.groups.push(groups[0]._id, groups[2]._id);
@@ -123,7 +116,6 @@ const seedData = async () => {
 
     await Promise.all([john.save(), sarah.save(), mike.save(), emma.save()]);
 
-    // Create posts
     const developersGroup = groups.find((group) => group.name === "Developers");
     const designersGroup = groups.find((group) => group.name === "Designers");
     const marketingGroup = groups.find((group) => group.name === "Marketing");
@@ -133,13 +125,13 @@ const seedData = async () => {
         text: "Hello everyone! This is my first post in the Developers group.",
         user: john._id,
         group: developersGroup._id,
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       },
       {
         text: "I just found this amazing JavaScript library. Check it out!",
         user: john._id,
         group: developersGroup._id,
-        createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
+        createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
       },
       {
         text: "What do you think about this color palette for our new project?",
@@ -147,36 +139,35 @@ const seedData = async () => {
         group: designersGroup._id,
         mediaType: "image",
         mediaUrl: "https://via.placeholder.com/800x600",
-        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
       },
       {
         text: "Our marketing campaign exceeded expectations! Here are the results.",
         user: mike._id,
         group: marketingGroup._id,
-        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
       },
       {
         text: "Just wanted to share my thoughts on the new React update.",
         user: john._id,
-        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
       },
       {
         text: "Check out this beautiful UI design I just created!",
         user: sarah._id,
         mediaType: "image",
         mediaUrl: "https://via.placeholder.com/1200x800",
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
       {
         text: "Happy to be part of this community!",
         user: emma._id,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       },
     ]);
 
     console.log(`${posts.length} posts created`);
 
-    // Add comments to posts
     const firstPost = posts[0];
     firstPost.comments.push(
       {
@@ -200,7 +191,6 @@ const seedData = async () => {
 
     await Promise.all([firstPost.save(), secondPost.save()]);
 
-    // Add likes to posts
     firstPost.likes.push(sarah._id, mike._id);
     secondPost.likes.push(sarah._id, mike._id, emma._id);
     posts[2].likes.push(emma._id);
@@ -211,7 +201,6 @@ const seedData = async () => {
 
     await Promise.all(posts.map((post) => post.save()));
 
-    // Create messages
     const johnSarahRoom = [john._id, sarah._id].sort().join("_");
     const johnMikeRoom = [john._id, mike._id].sort().join("_");
     const sarahEmmaRoom = [sarah._id, emma._id].sort().join("_");
@@ -286,7 +275,6 @@ const seedData = async () => {
   }
 };
 
-// Run the seeder
 const runSeeder = async () => {
   await clearDB();
   await seedData();

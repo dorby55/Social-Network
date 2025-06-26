@@ -1,13 +1,19 @@
-// src/pages/GroupInvitations.js
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserInvitations, respondToInvitation } from "../services/api";
+import { useGroupInvitationNotifications } from "../hooks/useGroupInvitationNotifications";
 
 const GroupInvitations = () => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { resetCount } = useGroupInvitationNotifications();
+
+  // Reset notifications when entering the page
+  useEffect(() => {
+    resetCount();
+  }, [resetCount]);
 
   useEffect(() => {
     const fetchInvitations = async () => {
@@ -28,13 +34,9 @@ const GroupInvitations = () => {
   }, []);
 
   const handleViewGroupInfo = (group) => {
-    // Show details about the group without navigating to it
     if (group.isPrivate) {
-      alert(
-        `"${group.name}" is a private group. You must accept the invitation to view its contents.`
-      );
+      return;
     } else {
-      // For public groups, we can still navigate, but they will still see limited info until they accept
       navigate(`/groups/${group._id}`);
     }
   };
@@ -45,22 +47,13 @@ const GroupInvitations = () => {
       const result = await respondToInvitation(groupId, accept);
       console.log("Response result:", result);
 
-      // Remove the invitation from the list
-      setInvitations(invitations.filter((inv) => inv.group._id !== groupId));
-
-      // If accepted, navigate to the group
-      if (accept) {
-        alert("Invitation accepted! You are now a member of this group.");
-        navigate(`/groups/${groupId}`);
-      } else {
-        alert("Invitation declined.");
-      }
+      // Refresh
+      window.location.reload();
 
       setError(null);
     } catch (err) {
       console.error("Error responding to invitation:", err);
       setError("Failed to respond to invitation. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -118,18 +111,21 @@ const GroupInvitations = () => {
                 <button
                   className="btn btn-primary"
                   onClick={() => handleResponse(invitation.group._id, true)}
+                  disabled={loading}
                 >
-                  Accept
+                  {loading ? "Processing..." : "Accept"}
                 </button>
                 <button
                   className="btn btn-secondary"
                   onClick={() => handleResponse(invitation.group._id, false)}
+                  disabled={loading}
                 >
-                  Decline
+                  {loading ? "Processing..." : "Decline"}
                 </button>
                 <button
                   className="btn btn-outline"
                   onClick={() => handleViewGroupInfo(invitation.group)}
+                  disabled={loading}
                 >
                   Group Info
                 </button>

@@ -1,10 +1,7 @@
-// server/middleware/upload.js
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Create uploads directory if it doesn't exist
-// Path to the client's public folder
 const uploadsDir = path.join(
   __dirname,
   "..",
@@ -15,13 +12,11 @@ const uploadsDir = path.join(
 );
 console.log(`Using uploads directory: ${uploadsDir}`);
 
-// Create uploads directory if it doesn't exist
 if (!fs.existsSync(uploadsDir)) {
   console.log(`Creating uploads directory: ${uploadsDir}`);
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
@@ -33,7 +28,6 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter to only accept images
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image/")) {
     cb(null, true);
@@ -45,7 +39,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 1024 * 1024 * 5, // 5MB limit
+    fileSize: 1024 * 1024 * 5,
   },
   fileFilter: fileFilter,
 });
@@ -73,11 +67,10 @@ const postMediaStorage = multer.diskStorage({
   },
 });
 
-// Create post media upload middleware
 const postMediaUpload = multer({
   storage: postMediaStorage,
   limits: {
-    fileSize: 1024 * 1024 * 10, // 10MB limit
+    fileSize: 1024 * 1024 * 10,
   },
   fileFilter: (req, file, cb) => {
     if (
@@ -95,6 +88,6 @@ const postMediaUpload = multer({
 });
 
 module.exports = {
-  profileUpload: upload, // Rename your existing upload for clarity
+  profileUpload: upload,
   postMediaUpload,
 };

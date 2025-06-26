@@ -1,8 +1,7 @@
-// src/pages/Home.js
 import React, { useContext, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
-import { getFeed, createPost } from "../services/api";
+import { getFeed } from "../services/api";
 import PostItem from "../components/post/PostItem";
 import CreatePostForm from "../components/post/CreatePostForm";
 
@@ -15,45 +14,50 @@ const Home = () => {
   const navigate = useNavigate();
 
   // Fetch feed posts
-  useEffect(() => {
-    const loadFeed = async () => {
-      if (isAuthenticated) {
-        try {
-          const data = await getFeed();
-          setPosts(data);
-          setError(null);
-        } catch (err) {
-          setError("Error loading feed. Please try again.");
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+  const loadFeed = async () => {
+    if (isAuthenticated) {
+      try {
+        setLoading(true);
+        const data = await getFeed();
+        setPosts(data);
+        setError(null);
+      } catch (err) {
+        setError("Error loading feed. Please try again.");
+        console.error(err);
+      } finally {
         setLoading(false);
       }
-    };
-
-    loadFeed();
-  }, [isAuthenticated]);
-
-  // Handle new post creation
-  const handleCreatePost = async (postData) => {
-    try {
-      const newPost = await createPost(postData);
-      setPosts([newPost, ...posts]);
-      return true;
-    } catch (err) {
-      setError("Error creating post. Please try again.");
-      console.error(err);
-      return false;
+    } else {
+      setLoading(false);
     }
   };
 
-  const handlePostDeleted = (deletedPostId) => {
-    setPosts(posts.filter((post) => post._id !== deletedPostId));
+  useEffect(() => {
+    loadFeed();
+  }, [isAuthenticated]);
+
+  const handlePostCreated = (newPost) => {
+    console.log("New post created on home feed:", newPost);
+    setPosts((prevPosts) => [newPost, ...prevPosts]);
+    setError(null);
   };
 
-  // Display welcome page for non-authenticated users
+  const handlePostUpdated = (updatedPost) => {
+    console.log("Post updated on home feed:", updatedPost);
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
+  };
+
+  const handlePostDeleted = (deletedPostId) => {
+    console.log("Post deleted from home feed:", deletedPostId);
+    setPosts((prevPosts) =>
+      prevPosts.filter((post) => post._id !== deletedPostId)
+    );
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="welcome-page">
@@ -76,7 +80,7 @@ const Home = () => {
   return (
     <div className="home-page">
       <div className="feed-container">
-        <CreatePostForm onCreatePost={handleCreatePost} />
+        <CreatePostForm groupId={null} onPostCreated={handlePostCreated} />
 
         {error && <div className="alert alert-danger">{error}</div>}
 
@@ -100,27 +104,17 @@ const Home = () => {
               </div>
             </div>
           ) : (
-            posts.map((post) => (
-              <PostItem
-                key={post._id}
-                post={post}
-                onPostDeleted={handlePostDeleted}
-              />
-            ))
+            <div className="posts-list">
+              {posts.map((post) => (
+                <PostItem
+                  key={post._id}
+                  post={post}
+                  onPostDeleted={handlePostDeleted}
+                  onPostUpdated={handlePostUpdated}
+                />
+              ))}
+            </div>
           )}
-        </div>
-      </div>
-
-      {/* Sidebar with trending topics, groups, etc. */}
-      <div className="sidebar">
-        <div className="sidebar-section">
-          <h3>Your Groups</h3>
-          {/* List of user's groups */}
-        </div>
-
-        <div className="sidebar-section">
-          <h3>Trending</h3>
-          {/* Trending topics or popular posts */}
         </div>
       </div>
     </div>

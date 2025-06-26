@@ -1,4 +1,3 @@
-// src/components/common/MediaLoader.js
 import React, { useState } from "react";
 
 const MediaLoader = ({ type, url, className }) => {

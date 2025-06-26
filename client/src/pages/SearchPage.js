@@ -1,4 +1,3 @@
-// src/pages/SearchPage.js - Complete revision
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { searchUsers, searchGroups, searchPosts } from "../services/api";
@@ -20,21 +19,16 @@ const SearchPage = () => {
   const [error, setError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Store search results by query to avoid redundant searches
   const [searchCache, setSearchCache] = useState({});
 
-  // Memoized function to get or fetch results
   const getResultsForQuery = useCallback(
     async (searchQuery, searchType) => {
-      // Generate cache key based on query and type
       const cacheKey = `${searchQuery}-${searchType}`;
 
-      // If we already have results for this query and type, use cache
       if (searchCache[cacheKey]) {
         return searchCache[cacheKey];
       }
 
-      // Otherwise, perform the search
       let searchResults = {};
 
       if (searchType === "all" || searchType === "users") {
@@ -67,7 +61,6 @@ const SearchPage = () => {
         }
       }
 
-      // Save results to cache
       setSearchCache((prev) => ({
         ...prev,
         [cacheKey]: searchResults,
@@ -78,7 +71,6 @@ const SearchPage = () => {
     [searchCache]
   );
 
-  // Perform search when query or type changes
   useEffect(() => {
     const performSearch = async () => {
       if (!query) return;
@@ -87,10 +79,8 @@ const SearchPage = () => {
       setError(null);
 
       try {
-        // Get results either from cache or by fetching
         const newResults = await getResultsForQuery(query, type);
 
-        // Update results based on the search type
         if (type === "all") {
           setResults({
             users: newResults.users || [],
@@ -126,7 +116,6 @@ const SearchPage = () => {
     performSearch();
   }, [query, type, getResultsForQuery]);
 
-  // Calculate total results for current tab
   const getTotalResults = () => {
     if (type === "users") return results.users.length;
     if (type === "groups") return results.groups.length;

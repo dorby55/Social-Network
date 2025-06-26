@@ -1,24 +1,23 @@
-// server/models/Post.js
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
-
-const PostSchema = new Schema({
+const PostSchema = new mongoose.Schema({
   user: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
+  group: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Group",
+  },
   text: {
     type: String,
-    required: true,
-  },
-  group: {
-    type: Schema.Types.ObjectId,
-    ref: "Group",
+    required: false,
+    maxlength: 1000,
+    default: "",
   },
   mediaType: {
     type: String,
-    enum: ["none", "image", "video", "youtube"],
+    enum: ["none", "image", "video"],
     default: "none",
   },
   mediaUrl: {
@@ -27,21 +26,23 @@ const PostSchema = new Schema({
   },
   likes: [
     {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
   ],
   comments: [
     {
       user: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        required: true,
       },
       text: {
         type: String,
         required: true,
+        maxlength: 500,
       },
-      date: {
+      createdAt: {
         type: Date,
         default: Date.now,
       },
@@ -50,6 +51,10 @@ const PostSchema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  editedAt: {
+    type: Date,
+    default: null,
   },
 });
 

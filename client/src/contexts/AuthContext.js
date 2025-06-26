@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.js
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
@@ -11,7 +10,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Set auth token in headers for all requests
   const setAuthToken = (token) => {
     if (token) {
       axios.defaults.headers.common["x-auth-token"] = token;
@@ -22,25 +20,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Load user if token exists
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem("token");
 
       if (token) {
         try {
-          // Check if token is expired
           const decoded = jwtDecode(token);
           const currentTime = Date.now() / 1000;
 
           if (decoded.exp < currentTime) {
-            // Token expired
             setAuthToken(null);
             setCurrentUser(null);
             setIsAuthenticated(false);
             setError("Session expired, please login again");
           } else {
-            // Token valid
             setAuthToken(token);
 
             try {
@@ -69,13 +63,11 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Register user
   const register = async (userData) => {
     try {
       const res = await axios.post("http://localhost:5000/api/users", userData);
       setAuthToken(res.data.token);
 
-      // Load user data
       const userRes = await axios.get("http://localhost:5000/api/users/me");
       setCurrentUser(userRes.data);
       setIsAuthenticated(true);
@@ -88,7 +80,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login user
   const login = async (email, password) => {
     try {
       const res = await axios.post("http://localhost:5000/api/users/login", {
@@ -97,7 +88,6 @@ export const AuthProvider = ({ children }) => {
       });
       setAuthToken(res.data.token);
 
-      // Load user data
       const userRes = await axios.get("http://localhost:5000/api/users/me");
       setCurrentUser(userRes.data);
       setIsAuthenticated(true);
@@ -110,7 +100,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout user
   const logout = () => {
     setAuthToken(null);
     setCurrentUser(null);
@@ -120,7 +109,6 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfilePicture = (newProfilePictureUrl) => {
     if (currentUser) {
-      // Update the currentUser object with the new profile picture
       setCurrentUser({
         ...currentUser,
         profilePicture: newProfilePictureUrl,

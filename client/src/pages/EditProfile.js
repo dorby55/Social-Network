@@ -1,4 +1,3 @@
-// src/pages/EditProfile.js - Updated for file uploads
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -70,13 +69,11 @@ const EditProfile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("File is too large. Maximum size is 5MB.");
       return;
     }
 
-    // Check file type
     if (!file.type.startsWith("image/")) {
       setError("Only image files are allowed.");
       return;
@@ -84,7 +81,6 @@ const EditProfile = () => {
 
     setProfileImage(file);
 
-    // Create a preview URL
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfileImageUrl(reader.result);
@@ -103,29 +99,23 @@ const EditProfile = () => {
       console.log("Upload response:", result);
 
       if (result.success && result.profilePicture) {
-        // Handle both absolute and relative URLs
         let imageUrl = result.profilePicture;
 
-        // If it's a relative URL (starts with /)
         if (imageUrl.startsWith("/") && !imageUrl.startsWith("//")) {
-          // Get the base URL from the current window location
           const baseUrl = window.location.origin;
           imageUrl = `${baseUrl}${imageUrl}`;
         }
 
-        // Add a random query parameter to force a reload
         const timestamp = new Date().getTime();
         const cachedImageUrl = `${imageUrl}?t=${timestamp}`;
 
         console.log("Setting profile image URL:", cachedImageUrl);
         setProfileImageUrl(cachedImageUrl);
 
-        // Update profile picture globally across the app
         updateProfilePicture(cachedImageUrl);
 
         setSuccessMessage("Profile picture uploaded successfully!");
 
-        // Clear file input
         fileInputRef.current.value = "";
         setProfileImage(null);
       } else {
@@ -140,7 +130,6 @@ const EditProfile = () => {
   };
 
   const handleDeletePicture = async () => {
-    // Confirm with the user before deleting
     if (
       !window.confirm("Are you sure you want to delete your profile picture?")
     ) {
@@ -154,10 +143,7 @@ const EditProfile = () => {
       const result = await deleteProfilePicture();
 
       if (result.success) {
-        // Clear the profile image locally
         setProfileImageUrl("");
-
-        // Update profile picture globally across the app
         updateProfilePicture("");
 
         setSuccessMessage("Profile picture deleted successfully!");
@@ -179,12 +165,10 @@ const EditProfile = () => {
     setSuccessMessage(null);
 
     try {
-      // Upload profile picture first if a new one was selected
       if (profileImage) {
         await handleUpload();
       }
 
-      // Update other profile info
       const updateData = {
         bio: formData.bio,
       };
@@ -192,8 +176,6 @@ const EditProfile = () => {
       await updateUserProfile(currentUser._id, updateData);
 
       setSuccessMessage("Profile updated successfully!");
-
-      // Redirect after a short delay
       setTimeout(() => {
         navigate(`/profile/${currentUser._id}`);
       }, 2000);

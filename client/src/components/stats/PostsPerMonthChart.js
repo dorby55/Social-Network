@@ -1,4 +1,3 @@
-// src/components/stats/PostsPerMonthChart.js
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { getPostsPerMonth } from "../../services/api";
@@ -29,15 +28,12 @@ const PostsPerMonthChart = () => {
   useEffect(() => {
     if (data.length === 0 || loading) return;
 
-    // Clear any existing chart
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Set dimensions
     const margin = { top: 20, right: 30, bottom: 40, left: 40 };
     const width = 600 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
-    // Create SVG
     const svg = d3
       .select(svgRef.current)
       .attr("width", width + margin.left + margin.right)
@@ -45,7 +41,6 @@ const PostsPerMonthChart = () => {
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Create scales
     const x = d3
       .scaleBand()
       .domain(data.map((d) => d.month))
@@ -58,7 +53,6 @@ const PostsPerMonthChart = () => {
       .nice()
       .range([height, 0]);
 
-    // Add axes
     svg
       .append("g")
       .attr("transform", `translate(0,${height})`)
@@ -71,7 +65,6 @@ const PostsPerMonthChart = () => {
 
     svg.append("g").call(d3.axisLeft(y));
 
-    // Add bars
     svg
       .selectAll(".bar")
       .data(data)
@@ -88,7 +81,6 @@ const PostsPerMonthChart = () => {
       .attr("y", (d) => y(d.count))
       .attr("height", (d) => height - y(d.count));
 
-    // Add title
     svg
       .append("text")
       .attr("x", width / 2)

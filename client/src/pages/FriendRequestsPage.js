@@ -1,8 +1,8 @@
-// src/pages/FriendRequestsPage.js
 import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { getCacheBustedUrl } from "../utils/imageUtils";
+import { useFriendRequestNotifications } from "../hooks/useFriendRequestNotifications";
 import {
   getFriendRequests,
   acceptFriendRequest,
@@ -13,13 +13,18 @@ const FriendRequestsPage = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { resetCount } = useFriendRequestNotifications();
+
+  // Reset notifications when entering the page
+  useEffect(() => {
+    resetCount();
+  }, [resetCount]);
 
   useEffect(() => {
     const loadFriendRequests = async () => {
       try {
         console.log("Fetching friend requests...");
         const data = await getFriendRequests();
-        console.log("Raw API response:", data);
         console.log("Friend requests data:", data);
         setRequests(data);
         setError(null);
@@ -36,23 +41,29 @@ const FriendRequestsPage = () => {
 
   const handleAcceptRequest = async (userId) => {
     try {
+      setLoading(true);
       await acceptFriendRequest(userId);
-      // Remove the request from the list
-      setRequests(requests.filter((request) => request.user._id !== userId));
+
+      // Refresh
+      window.location.reload();
     } catch (err) {
       setError("Failed to accept friend request. Please try again.");
       console.error(err);
+      setLoading(false);
     }
   };
 
   const handleRejectRequest = async (userId) => {
     try {
+      setLoading(true);
       await rejectFriendRequest(userId);
-      // Remove the request from the list
-      setRequests(requests.filter((request) => request.user._id !== userId));
+
+      // Refresh
+      window.location.reload();
     } catch (err) {
       setError("Failed to reject friend request. Please try again.");
       console.error(err);
+      setLoading(false);
     }
   };
 
@@ -96,14 +107,16 @@ const FriendRequestsPage = () => {
                 <button
                   className="btn btn-primary"
                   onClick={() => handleAcceptRequest(request.user._id)}
+                  disabled={loading}
                 >
-                  Accept
+                  {loading ? "Processing..." : "Accept"}
                 </button>
                 <button
                   className="btn btn-secondary"
                   onClick={() => handleRejectRequest(request.user._id)}
+                  disabled={loading}
                 >
-                  Decline
+                  {loading ? "Processing..." : "Decline"}
                 </button>
               </div>
             </div>

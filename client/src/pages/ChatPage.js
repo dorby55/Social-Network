@@ -1,9 +1,9 @@
-// src/pages/ChatPage.js
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { SocketContext } from "../contexts/SocketContext";
 import { getCacheBustedUrl } from "../utils/imageUtils";
+import { useMessageNotifications } from "../hooks/useMessageNotifications";
 import {
   getConversation,
   getAllConversations,
@@ -15,6 +15,7 @@ const ChatPage = () => {
   const { userId } = useParams();
   const { currentUser } = useContext(AuthContext);
   const { socket } = useContext(SocketContext);
+  const { fetchCount } = useMessageNotifications();
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,17 @@ const ChatPage = () => {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
-  // Fetch all conversations
+  // Refresh the notifications when entering chat page
+  useEffect(() => {
+    console.log("UI: Entered chat page, requesting notification refresh");
+
+    window.dispatchEvent(new Event("refreshMessageNotifications"));
+
+    setTimeout(() => {
+      window.dispatchEvent(new Event("refreshMessageNotifications"));
+    }, 2000);
+  }, []);
+
   // Fetch all conversations
   useEffect(() => {
     const fetchConversations = async () => {
@@ -34,19 +45,16 @@ const ChatPage = () => {
         const data = await getAllConversations();
         setConversations(data);
 
-        // If we have a userId from the URL, and we don't find it in conversations,
-        // we need to fetch the user profile to create a new conversation
         if (userId && !data.some((conv) => conv.otherUser._id === userId)) {
           const userProfile = await getUserProfile(userId);
           if (userProfile) {
-            // Create a placeholder conversation
             const newConversation = {
               otherUser: {
                 _id: userProfile._id,
                 username: userProfile.username,
                 profilePicture: userProfile.profilePicture,
               },
-              content: "", // No messages yet
+              content: "",
               unreadCount: 0,
             };
 
@@ -64,13 +72,12 @@ const ChatPage = () => {
     fetchConversations();
   }, [userId]);
 
-  // Select conversation based on URL param or default to first conversation
+  // Select conversation based on URL or select the first chat
   useEffect(() => {
     const selectInitialConversation = async () => {
       if (conversations.length === 0) return;
 
       if (userId) {
-        // Find conversation with this user
         const conversation = conversations.find(
           (conv) => conv.otherUser._id === userId
         );
@@ -78,8 +85,6 @@ const ChatPage = () => {
         if (conversation) {
           setCurrentChat(conversation.otherUser);
         } else {
-          // If we don't have a conversation yet but have a userId,
-          // we can fetch the user profile
           try {
             const userProfile = await getUserProfile(userId);
             if (userProfile) {
@@ -94,7 +99,6 @@ const ChatPage = () => {
           }
         }
       } else if (conversations.length > 0) {
-        // Default to first conversation if no userId specified
         setCurrentChat(conversations[0].otherUser);
       }
     };
@@ -102,7 +106,7 @@ const ChatPage = () => {
     selectInitialConversation();
   }, [conversations, userId]);
 
-  // Fetch conversation messages when currentChat changes
+  // Fetch messages and refresh notifications
   useEffect(() => {
     const fetchMessages = async () => {
       if (!currentChat) {
@@ -117,9 +121,19 @@ const ChatPage = () => {
         const data = await getConversation(currentChat._id);
         setMessages(data);
         setError(null);
-
-        // Update URL to reflect current chat
         navigate(`/chat/${currentChat._id}`, { replace: true });
+
+        console.log(
+          `UI: Loaded chat with ${currentChat.username}, refreshing notifications`
+        );
+
+        setTimeout(() => {
+          window.dispatchEvent(new Event("refreshMessageNotifications"));
+        }, 1000);
+
+        setTimeout(() => {
+          window.dispatchEvent(new Event("refreshMessageNotifications"));
+        }, 3000);
       } catch (err) {
         setError("Error loading messages. Please try again.");
         console.error(err);
@@ -131,21 +145,42 @@ const ChatPage = () => {
     fetchMessages();
   }, [currentChat, navigate]);
 
-  // Join socket room when current chat changes
   useEffect(() => {
     if (socket && currentChat) {
       const roomId = [currentUser._id, currentChat._id].sort().join("_");
 
-      // Join room
       socket.emit("join_room", { room: roomId });
 
-      // Listen for new messages
-      socket.on("receive_message", (data) => {
+      const handleReceiveMessage = (data) => {
         setMessages((prevMessages) => [...prevMessages, data]);
-      });
+
+        setConversations((prevConversations) => {
+          return prevConversations.map((conv) => {
+            const isConversationParticipant =
+              conv.otherUser._id === data.sender._id ||
+              conv.otherUser._id === data.receiver._id;
+
+            if (isConversationParticipant) {
+              return {
+                ...conv,
+                content: data.content,
+                createdAt: data.createdAt,
+                unreadCount:
+                  data.sender._id !== currentUser._id &&
+                  data.sender._id !== currentChat._id
+                    ? (conv.unreadCount || 0) + 1
+                    : conv.unreadCount || 0,
+              };
+            }
+            return conv;
+          });
+        });
+      };
+
+      socket.on("receive_message", handleReceiveMessage);
 
       return () => {
-        socket.off("receive_message");
+        socket.off("receive_message", handleReceiveMessage);
       };
     }
   }, [socket, currentUser, currentChat]);
@@ -155,12 +190,10 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handle select conversation (make sure to update this too)
   const handleSelectConversation = (otherUser) => {
     setCurrentChat(otherUser);
   };
 
-  // Handle send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
@@ -169,13 +202,23 @@ const ChatPage = () => {
     setIsSending(true);
 
     try {
-      // Create message data
       const newMessage = await sendMessage(currentChat._id, messageInput);
-
-      // Clear input
       setMessageInput("");
 
-      // Emit socket event
+      setConversations((prevConversations) => {
+        return prevConversations.map((conv) => {
+          if (conv.otherUser._id === currentChat._id) {
+            return {
+              ...conv,
+              content: newMessage.content,
+              createdAt: newMessage.createdAt,
+              unreadCount: 0,
+            };
+          }
+          return conv;
+        });
+      });
+
       if (socket) {
         socket.emit("send_message", newMessage);
       }

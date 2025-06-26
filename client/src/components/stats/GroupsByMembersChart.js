@@ -1,4 +1,3 @@
-// src/components/stats/GroupsByMembersChart.js
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { getGroupsByMembers } from "../../services/api";
@@ -13,7 +12,6 @@ const GroupsByMembersChart = () => {
     const fetchData = async () => {
       try {
         const chartData = await getGroupsByMembers();
-        // Sort by member count and take top 10
         const sortedData = chartData
           .sort((a, b) => b.memberCount - a.memberCount)
           .slice(0, 10);
@@ -33,15 +31,12 @@ const GroupsByMembersChart = () => {
   useEffect(() => {
     if (data.length === 0 || loading) return;
 
-    // Clear any existing chart
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Set dimensions
     const margin = { top: 20, right: 180, bottom: 40, left: 100 };
     const width = 800 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
-    // Create SVG
     const svg = d3
       .select(svgRef.current)
       .attr("width", width + margin.left + margin.right)
@@ -49,7 +44,6 @@ const GroupsByMembersChart = () => {
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Create scales
     const y = d3
       .scaleBand()
       .domain(data.map((d) => d.name))
@@ -62,7 +56,6 @@ const GroupsByMembersChart = () => {
       .nice()
       .range([0, width]);
 
-    // Add axes
     svg.append("g").call(d3.axisLeft(y));
 
     svg
@@ -70,13 +63,11 @@ const GroupsByMembersChart = () => {
       .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(x));
 
-    // Define color scale based on privacy
     const colorScale = d3
       .scaleOrdinal()
       .domain([true, false])
       .range(["#ff9999", "#66b3ff"]);
 
-    // Add bars
     svg
       .selectAll(".bar")
       .data(data)
@@ -92,7 +83,6 @@ const GroupsByMembersChart = () => {
       .duration(1000)
       .attr("width", (d) => x(d.memberCount));
 
-    // Add group count labels
     svg
       .selectAll(".label")
       .data(data)
@@ -105,7 +95,6 @@ const GroupsByMembersChart = () => {
       .attr("font-size", "12px")
       .attr("fill", "black");
 
-    // Add title
     svg
       .append("text")
       .attr("x", width / 2)
@@ -114,7 +103,6 @@ const GroupsByMembersChart = () => {
       .style("font-size", "16px")
       .text("Top Groups by Member Count");
 
-    // Add legend
     const legend = svg
       .append("g")
       .attr("font-family", "sans-serif")

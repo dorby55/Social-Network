@@ -1,4 +1,3 @@
-// src/components/post/PostItem.js
 import React, { useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -7,34 +6,47 @@ import {
   unlikePost,
   addComment,
   deletePost,
+  updatePost,
 } from "../../services/api";
 import { getCacheBustedUrl } from "../../utils/imageUtils";
 import CommentItem from "./CommentItem";
-import MediaLoader from "../common/MediaLoader";
 
-const PostItem = ({ post, onPostDeleted }) => {
+const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
   const { currentUser } = useContext(AuthContext);
   const [postData, setPostData] = useState(post);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [mediaError, setMediaError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(postData.text);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Check if user has already liked the post
   const isLiked = postData.likes.some((like) => like === currentUser._id);
 
   const isOwner = postData?.user._id === currentUser._id;
 
+  // Convert URL to hyper-link
+  const linkifyText = (text) => {
+    if (!text) return "";
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => {
+      const cleanUrl = url.replace(/[.,;:!?]+$/, "");
+      const trailingPunctuation = url.substring(cleanUrl.length);
+
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="post-link">${cleanUrl}</a>${trailingPunctuation}`;
+    });
+  };
+
   if (!postData) return null;
 
-  // Format date
   const formatDate = (dateString) => {
     const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Toggle like
   const handleLikeToggle = async () => {
     try {
       let updatedLikes;
@@ -51,7 +63,6 @@ const PostItem = ({ post, onPostDeleted }) => {
     }
   };
 
-  // Add comment
   const handleAddComment = async (e) => {
     e.preventDefault();
 
@@ -70,7 +81,17 @@ const PostItem = ({ post, onPostDeleted }) => {
     }
   };
 
-  // Delete post
+  const handleCommentUpdated = (updatedComments) => {
+    setPostData({ ...postData, comments: updatedComments });
+  };
+
+  const handleCommentDeleted = (commentId) => {
+    const updatedComments = postData.comments.filter(
+      (comment) => comment._id !== commentId
+    );
+    setPostData({ ...postData, comments: updatedComments });
+  };
+
   const handleDeletePost = async () => {
     if (
       window.confirm(
@@ -81,11 +102,9 @@ const PostItem = ({ post, onPostDeleted }) => {
         setIsDeleting(true);
         await deletePost(postData._id);
 
-        // If callback function is provided (e.g. from parent component)
         if (onPostDeleted) {
           onPostDeleted(postData._id);
         } else {
-          // If no callback, just hide the post locally
           setPostData(null);
         }
       } catch (err) {
@@ -97,9 +116,44 @@ const PostItem = ({ post, onPostDeleted }) => {
     }
   };
 
-  const handleMediaError = () => {
-    setMediaError(true);
-    console.error(`Failed to load media: ${postData.mediaUrl}`);
+  const handleEditStart = () => {
+    setIsEditing(true);
+    setEditText(postData.text);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setEditText(postData.text);
+  };
+
+  const handleEditSave = async () => {
+    if (!editText.trim()) {
+      alert("Post content cannot be empty");
+      return;
+    }
+
+    if (editText.trim() === postData.text) {
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      const updatedPost = await updatePost(postData._id, {
+        content: editText.trim(),
+      });
+      setPostData(updatedPost);
+      setIsEditing(false);
+
+      if (onPostUpdated) {
+        onPostUpdated(updatedPost);
+      }
+    } catch (err) {
+      console.error("Error updating post:", err);
+      alert("Failed to update post. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -128,48 +182,106 @@ const PostItem = ({ post, onPostDeleted }) => {
           </div>
         )}
 
-        <div className="post-date">{formatDate(postData.createdAt)}</div>
+        <div className="post-date">
+          {formatDate(postData.createdAt)}
+          {postData.editedAt && (
+            <span className="edited-indicator"> (edited)</span>
+          )}
+        </div>
+
         {isOwner && (
-          <button
-            className="delete-post-btn"
-            onClick={handleDeletePost}
-            disabled={isDeleting}
-            title="Delete post"
-          >
-            {isDeleting ? (
-              <i className="fas fa-spinner fa-spin"></i>
-            ) : (
-              <i className="fas fa-trash"></i>
-            )}
-          </button>
+          <div className="post-owner-actions">
+            <button
+              className="edit-post-btn"
+              onClick={handleEditStart}
+              disabled={isDeleting || isUpdating}
+              title="Edit post"
+            >
+              <i className="fas fa-edit"></i>
+            </button>
+            <button
+              className="delete-post-btn"
+              onClick={handleDeletePost}
+              disabled={isDeleting || isUpdating}
+              title="Delete post"
+            >
+              {isDeleting ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                <i className="fas fa-trash"></i>
+              )}
+            </button>
+          </div>
         )}
       </div>
 
       <div className="post-content">
-        <p>{postData.text}</p>
+        {isEditing ? (
+          <div className="post-edit-form">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              maxLength="1000"
+              rows="4"
+              className="edit-textarea"
+              disabled={isUpdating}
+              placeholder="What's on your mind?"
+            />
+            <div className="edit-actions">
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleEditSave}
+                disabled={isUpdating || !editText.trim()}
+              >
+                {isUpdating ? "Saving..." : "Save"}
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleEditCancel}
+                disabled={isUpdating}
+              >
+                Cancel
+              </button>
+            </div>
+            <small className="character-count">
+              {editText.length}/1000 characters
+            </small>
+          </div>
+        ) : (
+          <div>
+            {postData.text && postData.text.trim() && (
+              <div
+                className="linkified-text"
+                dangerouslySetInnerHTML={{ __html: linkifyText(postData.text) }}
+              />
+            )}
+          </div>
+        )}
 
-        {postData.mediaType !== "none" && postData.mediaUrl && (
+        {!isEditing && postData.mediaType !== "none" && postData.mediaUrl && (
           <div className="post-media">
             {postData.mediaType === "image" ? (
               <img
                 src={postData.mediaUrl}
                 alt="Post attachment"
-                onError={handleMediaError}
                 className="post-image"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  console.error("Failed to load image:", postData.mediaUrl);
+                }}
               />
             ) : postData.mediaType === "video" ? (
-              <video controls className="post-video" onError={handleMediaError}>
+              <video
+                controls
+                className="post-video"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  console.error("Failed to load video:", postData.mediaUrl);
+                }}
+              >
                 <source src={postData.mediaUrl} />
                 Your browser does not support the video tag.
               </video>
-            ) : postData.mediaType === "youtube" ? (
-              <iframe
-                src={postData.mediaUrl}
-                title="YouTube video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
             ) : null}
           </div>
         )}
@@ -219,7 +331,13 @@ const PostItem = ({ post, onPostDeleted }) => {
           {postData.comments.length > 0 ? (
             <div className="comments-list">
               {postData.comments.map((comment) => (
-                <CommentItem key={comment._id} comment={comment} />
+                <CommentItem
+                  key={comment._id}
+                  comment={comment}
+                  postId={postData._id}
+                  onCommentUpdated={handleCommentUpdated}
+                  onCommentDeleted={handleCommentDeleted}
+                />
               ))}
             </div>
           ) : (

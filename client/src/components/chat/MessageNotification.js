@@ -1,4 +1,3 @@
-// src/components/chat/MessageNotification.js
 import React, { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { SocketContext } from "../../contexts/SocketContext";
@@ -10,7 +9,6 @@ const MessageNotification = () => {
   const { socket } = useContext(SocketContext);
   const { currentUser } = useContext(AuthContext);
 
-  // Fetch initial unread count
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
@@ -26,11 +24,9 @@ const MessageNotification = () => {
     }
   }, [currentUser]);
 
-  // Listen for new messages
   useEffect(() => {
     if (socket) {
       socket.on("receive_message", (data) => {
-        // Check if the message is for the current user and not from them
         if (
           data.receiver._id === currentUser?._id &&
           data.sender._id !== currentUser?._id

@@ -1,4 +1,3 @@
-// src/pages/GroupsList.js
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getAllGroups, getUserGroups } from "../services/api";
@@ -16,7 +15,6 @@ const GroupsList = () => {
     const fetchGroups = async () => {
       setLoading(true);
       try {
-        // Always fetch both sets of data
         const [allGroupsData, userGroupsData] = await Promise.all([
           getAllGroups(),
           getUserGroups(),
@@ -36,7 +34,6 @@ const GroupsList = () => {
     fetchGroups();
   }, []);
 
-  // Filter groups based on search term
   const getFilteredGroups = () => {
     const groupsToFilter = activeTab === "my" ? userGroups : groups;
 

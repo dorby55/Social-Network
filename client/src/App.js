@@ -1,4 +1,3 @@
-// src/App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -22,7 +21,6 @@ import CreateGroup from "./pages/CreateGroup";
 import ChatPage from "./pages/ChatPage";
 import FriendRequestsPage from "./pages/FriendRequestsPage";
 import Statistics from "./pages/Statistics";
-import MediaPage from "./pages/MediaPage";
 import NotFound from "./pages/NotFound";
 
 // Protected route component
@@ -136,14 +134,6 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Statistics />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/media"
-                  element={
-                    <ProtectedRoute>
-                      <MediaPage />
                     </ProtectedRoute>
                   }
                 />

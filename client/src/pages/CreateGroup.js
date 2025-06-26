@@ -1,4 +1,3 @@
-// src/pages/CreateGroup.js
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -28,7 +27,6 @@ const CreateGroup = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate form
     if (!name.trim() || !description.trim()) {
       setError("Please enter all required fields");
       return;
