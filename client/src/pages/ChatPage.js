@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { SocketContext } from "../contexts/SocketContext";
@@ -27,7 +27,6 @@ const ChatPage = () => {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
-  // Refresh the notifications when entering chat page
   useEffect(() => {
     console.log("UI: Entered chat page, requesting notification refresh");
 
@@ -38,7 +37,6 @@ const ChatPage = () => {
     }, 2000);
   }, []);
 
-  // Fetch all conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -72,7 +70,6 @@ const ChatPage = () => {
     fetchConversations();
   }, [userId]);
 
-  // Select conversation based on URL or select the first chat
   useEffect(() => {
     const selectInitialConversation = async () => {
       if (conversations.length === 0) return;
@@ -106,7 +103,6 @@ const ChatPage = () => {
     selectInitialConversation();
   }, [conversations, userId]);
 
-  // Fetch messages and refresh notifications
   useEffect(() => {
     const fetchMessages = async () => {
       if (!currentChat) {
@@ -123,9 +119,30 @@ const ChatPage = () => {
         setError(null);
         navigate(`/chat/${currentChat._id}`, { replace: true });
 
-        console.log(
-          `UI: Loaded chat with ${currentChat.username}, refreshing notifications`
+        const conversation = conversations.find(
+          (conv) => conv.otherUser._id === currentChat._id
         );
+        const unreadCount = conversation?.unreadCount || 0;
+
+        console.log(
+          `UI: Loaded chat with ${currentChat.username}, had ${unreadCount} unread messages`
+        );
+
+        if (unreadCount > 0) {
+          setConversations((prevConversations) =>
+            prevConversations.map((conv) =>
+              conv.otherUser._id === currentChat._id
+                ? { ...conv, unreadCount: 0 }
+                : conv
+            )
+          );
+
+          window.dispatchEvent(
+            new CustomEvent("conversationRead", {
+              detail: { unreadCount },
+            })
+          );
+        }
 
         setTimeout(() => {
           window.dispatchEvent(new Event("refreshMessageNotifications"));
@@ -142,7 +159,9 @@ const ChatPage = () => {
       }
     };
 
-    fetchMessages();
+    if (currentChat) {
+      fetchMessages();
+    }
   }, [currentChat, navigate]);
 
   useEffect(() => {
@@ -185,7 +204,6 @@ const ChatPage = () => {
     }
   }, [socket, currentUser, currentChat]);
 
-  // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);

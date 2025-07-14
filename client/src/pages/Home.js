@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { getFeed } from "../services/api";
@@ -13,7 +13,6 @@ const Home = () => {
 
   const navigate = useNavigate();
 
-  // Fetch feed posts
   const loadFeed = async () => {
     if (isAuthenticated) {
       try {
@@ -62,15 +61,71 @@ const Home = () => {
     return (
       <div className="welcome-page">
         <div className="welcome-content">
-          <h1>Welcome to Social Network</h1>
-          <p>Connect with friends, join groups, and share your thoughts.</p>
-          <div className="welcome-buttons">
-            <Link to="/login" className="btn btn-primary">
-              Sign In
-            </Link>
-            <Link to="/register" className="btn btn-outline">
-              Sign Up
-            </Link>
+          <div className="welcome-header">
+            <h1 className="welcome-title">Welcome to Social Network</h1>
+            <p className="welcome-subtitle">
+              Connect with friends, join communities, and share your thoughts in
+              a simple, clean social platform designed for meaningful
+              connections.
+            </p>
+          </div>
+
+          <div className="welcome-main">
+            <div className="welcome-features">
+              <div className="feature-item">
+                <div className="feature-icon">👥</div>
+                <div className="feature-text">
+                  <h3>Connect with Friends</h3>
+                  <p>
+                    Build your network and stay in touch with people who matter.
+                  </p>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <div className="feature-icon">🏘️</div>
+                <div className="feature-text">
+                  <h3>Join Communities</h3>
+                  <p>Find groups based on your interests and hobbies.</p>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <div className="feature-icon">💬</div>
+                <div className="feature-text">
+                  <h3>Share & Chat</h3>
+                  <p>Post updates and have real-time conversations.</p>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <div className="feature-icon">🔒</div>
+                <div className="feature-text">
+                  <h3>Privacy Focused</h3>
+                  <p>Control your privacy with robust security settings.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="welcome-actions">
+              <h2>Ready to get started?</h2>
+              <p>Join our community and start connecting today.</p>
+
+              <div className="welcome-buttons">
+                <Link to="/register" className="btn btn-primary btn-large">
+                  Create Account
+                </Link>
+                <Link to="/login" className="btn btn-secondary btn-large">
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="welcome-footer">
+            <p>
+              &copy; 2025 Social Network. Simple social networking done right.
+            </p>
           </div>
         </div>
       </div>

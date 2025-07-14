@@ -16,14 +16,14 @@ router.post(
   messageController.sendMessage
 );
 
-router.get("/:userId", auth, messageController.getConversation);
-
 router.get("/", auth, messageController.getAllConversations);
-
-router.delete("/:id", auth, messageController.deleteMessage);
 
 router.get("/unread", auth, messageController.getUnreadCount);
 
 router.put("/read/:userId", auth, messageController.markAsRead);
+
+router.get("/:userId", auth, messageController.getConversation);
+
+router.delete("/:id", auth, messageController.deleteMessage);
 
 module.exports = router;

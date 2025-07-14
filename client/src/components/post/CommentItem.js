@@ -1,5 +1,5 @@
 // src/components/post/CommentItem.js
-import React, { useContext, useState } from "react";
+import { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import { getCacheBustedUrl } from "../../utils/imageUtils";
@@ -17,7 +17,6 @@ const CommentItem = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Check if this is the user's comment
   const isOwner = comment.user._id === currentUser?._id;
 
   const formatDate = (dateString) => {
@@ -25,19 +24,16 @@ const CommentItem = ({
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Start editing
   const handleEditStart = () => {
     setIsEditing(true);
     setEditText(comment.text);
   };
 
-  // Cancel editing
   const handleEditCancel = () => {
     setIsEditing(false);
     setEditText(comment.text);
   };
 
-  // Save edit
   const handleEditSave = async () => {
     if (!editText.trim()) {
       alert("Comment cannot be empty");
@@ -69,7 +65,6 @@ const CommentItem = ({
     }
   };
 
-  // Delete comment
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this comment?")) {
       return;

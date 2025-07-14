@@ -1,5 +1,3 @@
-import React from "react";
-
 const NotificationBadge = ({ count, children }) => {
   return (
     <div className="notification-wrapper">

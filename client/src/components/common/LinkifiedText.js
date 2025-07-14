@@ -1,5 +1,3 @@
-import React from "react";
-
 const urlRegex = /(https?:\/\/[^\s]+)/g;
 
 const linkifyText = (text) => {

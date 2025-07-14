@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { AuthContext } from "../contexts/AuthContext";
 import { getCacheBustedUrl } from "../utils/imageUtils";
 import { useFriendRequestNotifications } from "../hooks/useFriendRequestNotifications";
 import {
@@ -15,7 +14,6 @@ const FriendRequestsPage = () => {
   const [error, setError] = useState(null);
   const { resetCount } = useFriendRequestNotifications();
 
-  // Reset notifications when entering the page
   useEffect(() => {
     resetCount();
   }, [resetCount]);
@@ -44,7 +42,6 @@ const FriendRequestsPage = () => {
       setLoading(true);
       await acceptFriendRequest(userId);
 
-      // Refresh
       window.location.reload();
     } catch (err) {
       setError("Failed to accept friend request. Please try again.");
@@ -58,7 +55,6 @@ const FriendRequestsPage = () => {
       setLoading(true);
       await rejectFriendRequest(userId);
 
-      // Refresh
       window.location.reload();
     } catch (err) {
       setError("Failed to reject friend request. Please try again.");

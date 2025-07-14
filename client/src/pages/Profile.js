@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import {
@@ -33,7 +33,6 @@ const Profile = () => {
 
   const isOwnProfile = currentUser?._id === id;
 
-  // Check if user is a friend
   const isFriend = profile?.friends.some(
     (friendId) => friendId === currentUser?._id
   );
@@ -89,7 +88,6 @@ const Profile = () => {
     checkFriendRequestStatus();
   }, [id, isOwnProfile, profile, currentUser]);
 
-  // load friends and groups when tabs are clicked
   useEffect(() => {
     const loadTabData = async () => {
       if (!profile) return;

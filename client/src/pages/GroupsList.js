@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getAllGroups, getUserGroups } from "../services/api";
 import GroupItem from "../components/group/GroupItem";

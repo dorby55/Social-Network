@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useState,
-  useEffect,
-  useContext,
-  useRef,
-} from "react";
+import { createContext, useState, useEffect, useContext, useRef } from "react";
 import io from "socket.io-client";
 import { AuthContext } from "./AuthContext";
 
@@ -25,7 +19,6 @@ export const SocketProvider = ({ children }) => {
       }
     };
 
-    // Only connect if user is authenticated
     if (isAuthenticated && currentUser) {
       const newSocket = io("http://localhost:5000", {
         reconnection: true,

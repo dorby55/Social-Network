@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import { getCacheBustedUrl } from "../../utils/imageUtils";
@@ -40,6 +40,8 @@ const Navbar = () => {
     setShowUserMenu(!showUserMenu);
   };
 
+  const handleMessagesClick = () => {};
+
   return (
     <nav className="navbar">
       <div className="navbar-content">
@@ -73,7 +75,11 @@ const Navbar = () => {
                 Groups
               </Link>
               <NotificationBadge count={messageCount}>
-                <Link to="/chat" className="nav-link">
+                <Link
+                  to="/chat"
+                  className="nav-link"
+                  onClick={handleMessagesClick}
+                >
                   Messages
                 </Link>
               </NotificationBadge>
@@ -91,7 +97,6 @@ const Navbar = () => {
                 Stats
               </Link>
 
-              {/* User Dropdown Menu */}
               <div className="navbar-user-dropdown" ref={dropdownRef}>
                 <button
                   className="user-menu-trigger"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { searchUsers, searchGroups, searchPosts } from "../services/api";
 import UserItem from "../components/user/UserItem";

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserInvitations, respondToInvitation } from "../services/api";
 import { useGroupInvitationNotifications } from "../hooks/useGroupInvitationNotifications";
@@ -10,7 +10,6 @@ const GroupInvitations = () => {
   const navigate = useNavigate();
   const { resetCount } = useGroupInvitationNotifications();
 
-  // Reset notifications when entering the page
   useEffect(() => {
     resetCount();
   }, [resetCount]);
@@ -47,7 +46,6 @@ const GroupInvitations = () => {
       const result = await respondToInvitation(groupId, accept);
       console.log("Response result:", result);
 
-      // Refresh
       window.location.reload();
 
       setError(null);

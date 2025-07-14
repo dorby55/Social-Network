@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 const MediaLoader = ({ type, url, className }) => {
   const [isLoading, setIsLoading] = useState(true);

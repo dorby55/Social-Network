@@ -65,13 +65,21 @@ export const useMessageNotifications = () => {
       fetchCount();
     };
 
+    const handleConversationRead = (event) => {
+      const { unreadCount } = event.detail;
+      console.log(`UI: Conversation read, reducing badge by ${unreadCount}`);
+      setCount((prevCount) => Math.max(0, prevCount - unreadCount));
+    };
+
     window.addEventListener("refreshMessageNotifications", handleForceRefresh);
+    window.addEventListener("conversationRead", handleConversationRead);
 
     return () => {
       window.removeEventListener(
         "refreshMessageNotifications",
         handleForceRefresh
       );
+      window.removeEventListener("conversationRead", handleConversationRead);
     };
   }, []);
 

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { createPost, uploadPostMedia } from "../../services/api";
+import DrawingCanvas from "../media/DrawingCanvas";
 
 const CreatePostForm = ({ groupId, onPostCreated }) => {
   const [postText, setPostText] = useState("");
@@ -8,6 +9,7 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
   const [mediaType, setMediaType] = useState("none");
   const [loading, setLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [showDrawing, setShowDrawing] = useState(false);
 
   const handleMediaSelect = (e) => {
     const file = e.target.files[0];
@@ -18,7 +20,6 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
       return;
     }
 
-    // Validate file type
     if (file.type.startsWith("image/")) {
       setMediaType("image");
     } else if (file.type.startsWith("video/")) {
@@ -30,7 +31,6 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
 
     setMediaFile(file);
 
-    // preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setMediaPreview(e.target.result);
@@ -44,6 +44,17 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
     setMediaType("none");
     const fileInput = document.getElementById("media-upload");
     if (fileInput) fileInput.value = "";
+  };
+
+  const handleDrawingSave = (drawingFile) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setMediaPreview(e.target.result);
+      setMediaType("image");
+      setMediaFile(drawingFile);
+      setShowDrawing(false);
+    };
+    reader.readAsDataURL(drawingFile);
   };
 
   const handleSubmit = async (e) => {
@@ -120,7 +131,6 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
           disabled={loading}
         />
 
-        {/* Media Preview */}
         {mediaPreview && (
           <div className="media-preview">
             {mediaType === "image" ? (
@@ -134,7 +144,7 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
               onClick={removeMedia}
               disabled={loading}
             >
-              <i className="fas fa-times"></i>
+              ×
             </button>
           </div>
         )}
@@ -153,6 +163,17 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
               style={{ display: "none" }}
               disabled={loading}
             />
+
+            <button
+              type="button"
+              className="media-upload-btn drawing-btn"
+              onClick={() => setShowDrawing(true)}
+              disabled={loading}
+              title="Create Drawing"
+            >
+              <i className="fas fa-paint-brush"></i>
+              Draw
+            </button>
           </div>
 
           <div className="form-info">
@@ -173,6 +194,12 @@ const CreatePostForm = ({ groupId, onPostCreated }) => {
           </div>
         </div>
       </form>
+
+      <DrawingCanvas
+        isOpen={showDrawing}
+        onSave={handleDrawingSave}
+        onCancel={() => setShowDrawing(false)}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import {
@@ -35,7 +35,6 @@ const ManageGroup = () => {
     isPrivate: false,
   });
 
-  // Fetch group data
   useEffect(() => {
     const fetchGroupData = async () => {
       try {
@@ -123,7 +122,6 @@ const ManageGroup = () => {
     }
   };
 
-  // Check if user is the admin
   const isAdmin =
     group?.admin?._id === currentUser?._id ||
     group?.admin === currentUser?._id ||

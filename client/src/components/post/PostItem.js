@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import {
@@ -22,12 +22,10 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
   const [editText, setEditText] = useState(postData.text);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Check if user has already liked the post
   const isLiked = postData.likes.some((like) => like === currentUser._id);
 
   const isOwner = postData?.user._id === currentUser._id;
 
-  // Convert URL to hyper-link
   const linkifyText = (text) => {
     if (!text) return "";
 

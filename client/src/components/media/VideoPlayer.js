@@ -1,5 +1,4 @@
-// src/components/media/VideoPlayer.js
-import React, { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 
 const VideoPlayer = ({
   src,
@@ -26,11 +25,9 @@ const VideoPlayer = ({
       setDuration(videoElement.duration);
     };
 
-    // Add event listeners
     videoElement.addEventListener("timeupdate", handleTimeUpdate);
     videoElement.addEventListener("loadedmetadata", handleLoadedMetadata);
 
-    // Remove event listeners on cleanup
     return () => {
       videoElement.removeEventListener("timeupdate", handleTimeUpdate);
       videoElement.removeEventListener("loadedmetadata", handleLoadedMetadata);

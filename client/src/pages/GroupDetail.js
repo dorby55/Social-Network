@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import {
@@ -24,15 +24,12 @@ const GroupDetail = () => {
 
   const navigate = useNavigate();
 
-  // Check if the user is a member in the group
   const isMember = group?.members.some(
     (member) => member.user._id === currentUser._id
   );
 
-  // Check if the user is the admin of the group
   const isAdmin = group?.admin._id === currentUser._id;
 
-  // Check if the user has a join request
   const hasPendingRequest =
     localPendingRequest ||
     (group?.pendingRequests &&
