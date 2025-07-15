@@ -11,6 +11,8 @@ import {
   removeMember,
   searchUsers as searchUsersApi,
 } from "../services/api";
+import ConfirmationModal from "../components/ui/ConfirmationModal";
+import ToastNotification from "../components/ui/ToastNotification";
 
 const ManageGroup = () => {
   const { id } = useParams();
@@ -34,6 +36,25 @@ const ManageGroup = () => {
     description: "",
     isPrivate: false,
   });
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ show: false, message: "", type: "success" });
+  };
 
   useEffect(() => {
     const fetchGroupData = async () => {
@@ -158,39 +179,41 @@ const ManageGroup = () => {
       });
 
       setError(null);
-      alert("Group updated successfully!");
+      showToast("Group updated successfully!", "success");
     } catch (err) {
       console.error("Error updating group:", err);
       setError("Error updating group. Please try again.");
+      showToast("Error updating group. Please try again.", "error");
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleDeleteGroup = async () => {
+  const handleDeleteGroupClick = () => {
     if (!isAdmin) {
       setError("You don't have permission to delete this group");
       return;
     }
+    setShowDeleteModal(true);
+  };
 
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this group? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
     setDeleting(true);
-
     try {
       await deleteGroup(id);
       navigate("/groups");
     } catch (err) {
       console.error("Error deleting group:", err);
       setError("Error deleting group. Please try again.");
+      showToast("Error deleting group. Please try again.", "error");
+    } finally {
       setDeleting(false);
+      setShowDeleteModal(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   const searchForUsers = async (term) => {
@@ -215,6 +238,7 @@ const ManageGroup = () => {
     } catch (err) {
       console.error("Error searching users:", err);
       setError("Failed to search for users");
+      showToast("Failed to search for users", "error");
     } finally {
       setLoadingUsers(false);
     }
@@ -233,11 +257,7 @@ const ManageGroup = () => {
         );
 
         await refreshGroupData();
-        alert(
-          action === "approve"
-            ? "User approved successfully!"
-            : "Request rejected successfully!"
-        );
+        showToast("User approved successfully!", "success");
       } else {
         await rejectJoinRequest(id, userId);
         setPendingRequests((prevRequests) =>
@@ -247,16 +267,19 @@ const ManageGroup = () => {
               (typeof req.user === "string" && req.user !== userId)
           )
         );
+        showToast("Request rejected successfully!", "success");
       }
     } catch (err) {
       console.error(`Error ${action}ing request:`, err);
       setError(`Failed to ${action} request. Please try again.`);
+      showToast(`Failed to ${action} request. Please try again.`, "error");
     }
   };
 
   const handleInviteUser = async () => {
     if (!selectedUser) {
       setError("Please select a user to invite");
+      showToast("Please select a user to invite", "warning");
       return;
     }
 
@@ -271,7 +294,7 @@ const ManageGroup = () => {
       setSelectedUser("");
       setAvailableUsers([]);
 
-      alert(result.msg || "User invited successfully!");
+      showToast(result.msg || "User invited successfully!", "success");
 
       await refreshGroupData();
     } catch (err) {
@@ -279,21 +302,26 @@ const ManageGroup = () => {
       setError(
         err.response?.data?.msg || "Failed to invite user. Please try again."
       );
+      showToast(
+        err.response?.data?.msg || "Failed to invite user. Please try again.",
+        "error"
+      );
     } finally {
       setInviting(false);
     }
   };
 
-  const handleRemoveMember = async (userId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to remove this member from the group?"
-      )
-    ) {
-      return;
-    }
+  const handleRemoveMemberClick = (member) => {
+    setMemberToRemove(member);
+    setShowRemoveModal(true);
+  };
 
+  const handleConfirmRemove = async () => {
+    if (!memberToRemove) return;
+
+    setIsRemoving(true);
     try {
+      const userId = memberToRemove.user._id || memberToRemove.user;
       await removeMember(id, userId);
 
       setMembers((prevMembers) =>
@@ -304,11 +332,21 @@ const ManageGroup = () => {
         )
       );
 
-      alert("Member removed successfully!");
+      setShowRemoveModal(false);
+      setMemberToRemove(null);
+      showToast("Member removed successfully!", "success");
     } catch (err) {
       console.error("Error removing member:", err);
       setError("Failed to remove member. Please try again.");
+      showToast("Failed to remove member. Please try again.", "error");
+    } finally {
+      setIsRemoving(false);
     }
+  };
+
+  const handleCancelRemove = () => {
+    setShowRemoveModal(false);
+    setMemberToRemove(null);
   };
 
   if (loading) {
@@ -572,7 +610,7 @@ const ManageGroup = () => {
                         <div className="member-actions">
                           <button
                             className="btn btn-danger btn-sm"
-                            onClick={() => handleRemoveMember(userId)}
+                            onClick={() => handleRemoveMemberClick(member)}
                           >
                             Remove
                           </button>
@@ -603,7 +641,7 @@ const ManageGroup = () => {
               </div>
               <button
                 className="btn btn-danger"
-                onClick={handleDeleteGroup}
+                onClick={handleDeleteGroupClick}
                 disabled={deleting}
               >
                 {deleting ? "Deleting..." : "Delete Group"}
@@ -612,6 +650,39 @@ const ManageGroup = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showRemoveModal}
+        onClose={handleCancelRemove}
+        onConfirm={handleConfirmRemove}
+        title="Remove Member"
+        message={`Are you sure you want to remove ${
+          memberToRemove?.user?.username || "this member"
+        } from the group? This action cannot be undone.`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        confirmButtonClass="btn-danger"
+        isLoading={isRemoving}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Group"
+        message={`Are you sure you want to delete "${group?.name}"? This will permanently delete the group and all its content. This action cannot be undone.`}
+        confirmText="Delete Group"
+        cancelText="Cancel"
+        confirmButtonClass="btn-danger"
+        isLoading={deleting}
+      />
+
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={hideToast}
+      />
     </div>
   );
 };

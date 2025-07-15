@@ -10,6 +10,8 @@ import {
 } from "../services/api";
 import PostItem from "../components/post/PostItem";
 import CreatePostForm from "../components/post/CreatePostForm";
+import ConfirmationModal from "../components/ui/ConfirmationModal";
+import ToastNotification from "../components/ui/ToastNotification";
 
 const GroupDetail = () => {
   const { id } = useParams();
@@ -21,6 +23,13 @@ const GroupDetail = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [localPendingRequest, setLocalPendingRequest] = useState(false);
   const [hasPendingInvitation, setHasPendingInvitation] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [isLeavingGroup, setIsLeavingGroup] = useState(false);
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
   const navigate = useNavigate();
 
@@ -38,6 +47,18 @@ const GroupDetail = () => {
           typeof request.user === "object" ? request.user._id : request.user;
         return requestUserId === currentUser._id;
       }));
+
+  const showToast = (message, type = "success") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+  };
+
+  const closeToast = () => {
+    setToast((prev) => ({ ...prev, show: false }));
+  };
 
   useEffect(() => {
     const checkPendingInvitation = async () => {
@@ -101,14 +122,14 @@ const GroupDetail = () => {
     try {
       const result = await joinGroup(id);
       setLocalPendingRequest(true);
-      alert(result.msg || "Join request sent to group admin");
+      showToast(result.msg || "Join request sent to group admin", "success");
 
       const updatedGroup = await getGroupById(id);
       setGroup(updatedGroup);
 
       setError(null);
     } catch (err) {
-      setError("Error joining group. Please try again.");
+      showToast("Error joining group. Please try again.", "error");
       console.error(err);
     } finally {
       setIsJoining(false);
@@ -137,16 +158,23 @@ const GroupDetail = () => {
     );
   };
 
-  const handleLeaveGroup = async () => {
-    if (!window.confirm("Are you sure you want to leave this group?")) {
-      return;
-    }
+  const handleLeaveGroupClick = () => {
+    setShowLeaveModal(true);
+  };
+
+  const handleLeaveGroupConfirm = async () => {
+    setIsLeavingGroup(true);
 
     try {
       await leaveGroup(id);
-      navigate("/groups");
+      setShowLeaveModal(false);
+      showToast("You have successfully left the group.", "success");
+      setTimeout(() => {
+        navigate("/groups");
+      }, 1500);
     } catch (err) {
       console.error("Error leaving group:", err);
+      setIsLeavingGroup(false);
 
       if (
         err.response &&
@@ -154,9 +182,11 @@ const GroupDetail = () => {
         err.response.data.msg &&
         err.response.data.msg.includes("Admin cannot leave")
       ) {
-        setError(err.response.data.msg);
+        setShowLeaveModal(false);
+        showToast(err.response.data.msg, "error");
       } else {
-        setError("Error leaving group. Please try again.");
+        setShowLeaveModal(false);
+        showToast("Error leaving group. Please try again.", "error");
 
         try {
           const updatedGroup = await getGroupById(id);
@@ -165,8 +195,10 @@ const GroupDetail = () => {
           );
 
           if (!stillMember) {
-            alert("You have successfully left the group.");
-            navigate("/groups");
+            showToast("You have successfully left the group.", "success");
+            setTimeout(() => {
+              navigate("/groups");
+            }, 1500);
           }
         } catch (checkErr) {
           console.error(
@@ -176,6 +208,10 @@ const GroupDetail = () => {
         }
       }
     }
+  };
+
+  const handleLeaveGroupCancel = () => {
+    setShowLeaveModal(false);
   };
 
   if (loading) {
@@ -278,7 +314,7 @@ const GroupDetail = () => {
             !isAdmin && (
               <button
                 className="btn btn-outline danger"
-                onClick={handleLeaveGroup}
+                onClick={handleLeaveGroupClick}
               >
                 Leave Group
               </button>
@@ -326,7 +362,7 @@ const GroupDetail = () => {
             <p>{group.description}</p>
             <p>
               <strong>Created:</strong>{" "}
-              {new Date(group.createdAt).toLocaleDateString()}
+              {new Date(group.createdAt).toLocaleDateString("en-GB")}
             </p>
             <p>
               <strong>Admin:</strong> {group.admin.username}
@@ -366,6 +402,25 @@ const GroupDetail = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showLeaveModal}
+        onClose={handleLeaveGroupCancel}
+        onConfirm={handleLeaveGroupConfirm}
+        title="Leave Group"
+        message="Are you sure you want to leave this group? You will need to request to join again if you want to return."
+        confirmText="Leave Group"
+        cancelText="Cancel"
+        confirmButtonClass="btn-danger"
+        isLoading={isLeavingGroup}
+      />
+
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={closeToast}
+      />
     </div>
   );
 };

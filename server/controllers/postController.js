@@ -75,21 +75,57 @@ exports.getFeed = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     const friends = user.friends;
-    const groups = user.groups;
+    const userGroups = user.groups;
+
+    // Get all public groups
+    const publicGroups = await Group.find({ isPrivate: false }).select("_id");
+    const publicGroupIds = publicGroups.map((group) => group._id);
+
+    // Combine user's groups with public groups for the feed
+    const allowedGroupIds = [...userGroups, ...publicGroupIds];
+
     const posts = await Post.find({
       $or: [
-        { user: { $in: [...friends, req.user.id] } },
-        { group: { $in: groups } },
+        // Posts from friends and the user themselves (not in any group)
+        {
+          user: { $in: [...friends, req.user.id] },
+          group: { $exists: false },
+        },
+        {
+          user: { $in: [...friends, req.user.id] },
+          group: null,
+        },
+        // Posts from groups the user is a member of OR public groups
+        {
+          group: { $in: allowedGroupIds },
+        },
       ],
     })
       .populate("user", ["username", "profilePicture"])
-      .populate("group", ["name"])
+      .populate("group", ["name", "isPrivate"])
       .populate("comments.user", ["username", "profilePicture"])
       .sort({ createdAt: -1 });
 
-    res.json(posts);
+    // Additional safety check: filter out private groups the user is not a member of
+    const filteredPosts = posts.filter((post) => {
+      if (!post.group) {
+        return true; // Personal posts are always allowed
+      }
+
+      if (!post.group.isPrivate) {
+        return true; // Public group posts are always allowed
+      }
+
+      // For private groups, check if user is a member
+      const isMember = userGroups.some(
+        (groupId) => groupId.toString() === post.group._id.toString()
+      );
+      return isMember;
+    });
+
+    res.json(filteredPosts);
   } catch (err) {
-    console.error(err.message);
+    console.error("Error in getFeed:", err.message);
     res.status(500).send("Server error");
   }
 };
@@ -416,6 +452,7 @@ exports.getGroupPosts = async (req, res) => {
 
     const posts = await Post.find({ group: req.params.groupId })
       .populate("user", ["username", "profilePicture"])
+      .populate("group", ["name"])
       .sort({ createdAt: -1 });
 
     res.json(posts);

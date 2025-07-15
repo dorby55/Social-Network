@@ -1,5 +1,5 @@
 import { useState, useContext } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import {
   likePost,
@@ -13,6 +13,7 @@ import CommentItem from "./CommentItem";
 
 const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
   const { currentUser } = useContext(AuthContext);
+  const location = useLocation();
   const [postData, setPostData] = useState(post);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -23,8 +24,39 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const isLiked = postData.likes.some((like) => like === currentUser._id);
-
   const isOwner = postData?.user._id === currentUser._id;
+
+  // Debug logging
+  console.log("PostItem - Current location:", location.pathname);
+  console.log("PostItem - Post group data:", postData.group);
+
+  // Check if we're already on this group's page
+  const isOnGroupPage =
+    postData.group && location.pathname === `/groups/${postData.group._id}`;
+
+  console.log("PostItem - Is on group page:", isOnGroupPage);
+
+  // Get group name with fallback
+  const getGroupName = () => {
+    if (!postData.group) return null;
+
+    // If group is just an ID string, we don't have the name
+    if (typeof postData.group === "string") {
+      console.log("PostItem - Group is just an ID string:", postData.group);
+      return "Group"; // Fallback name
+    }
+
+    // If group is an object but no name
+    if (postData.group && !postData.group.name) {
+      console.log("PostItem - Group object has no name:", postData.group);
+      return "Group"; // Fallback name
+    }
+
+    return postData.group.name;
+  };
+
+  const groupName = getGroupName();
+  console.log("PostItem - Final group name:", groupName);
 
   const linkifyText = (text) => {
     if (!text) return "";
@@ -172,11 +204,17 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
           </Link>
         </div>
 
-        {postData.group && (
+        {postData.group && groupName && (
           <div className="post-group">
-            <Link to={`/groups/${postData.group._id}`}>
-              <span className="group-name">in {postData.group.name}</span>
-            </Link>
+            {isOnGroupPage ? (
+              // If we're already on this group's page, show it as non-clickable text
+              <span className="group-name-current">in {groupName}</span>
+            ) : (
+              // If we're not on this group's page, show it as a clickable link
+              <Link to={`/groups/${postData.group._id || postData.group}`}>
+                <span className="group-name">in {groupName}</span>
+              </Link>
+            )}
           </div>
         )}
 
