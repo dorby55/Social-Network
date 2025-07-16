@@ -10,6 +10,8 @@ import {
 } from "../../services/api";
 import { getCacheBustedUrl } from "../../utils/imageUtils";
 import CommentItem from "./CommentItem";
+import ConfirmationModal from "../ui/ConfirmationModal";
+import ToastNotification from "../ui/ToastNotification";
 
 const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
   const { currentUser } = useContext(AuthContext);
@@ -23,40 +25,46 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
   const [editText, setEditText] = useState(postData.text);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
+
   const isLiked = postData.likes.some((like) => like === currentUser._id);
   const isOwner = postData?.user._id === currentUser._id;
 
-  // Debug logging
-  console.log("PostItem - Current location:", location.pathname);
-  console.log("PostItem - Post group data:", postData.group);
+  const showToast = (message, type = "success") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+  };
 
-  // Check if we're already on this group's page
+  const closeToast = () => {
+    setToast((prev) => ({ ...prev, show: false }));
+  };
+
   const isOnGroupPage =
     postData.group && location.pathname === `/groups/${postData.group._id}`;
 
-  console.log("PostItem - Is on group page:", isOnGroupPage);
-
-  // Get group name with fallback
   const getGroupName = () => {
     if (!postData.group) return null;
 
-    // If group is just an ID string, we don't have the name
     if (typeof postData.group === "string") {
-      console.log("PostItem - Group is just an ID string:", postData.group);
-      return "Group"; // Fallback name
+      return "Group";
     }
 
-    // If group is an object but no name
     if (postData.group && !postData.group.name) {
-      console.log("PostItem - Group object has no name:", postData.group);
-      return "Group"; // Fallback name
+      return "Group";
     }
 
     return postData.group.name;
   };
 
   const groupName = getGroupName();
-  console.log("PostItem - Final group name:", groupName);
 
   const linkifyText = (text) => {
     if (!text) return "";
@@ -122,28 +130,34 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
     setPostData({ ...postData, comments: updatedComments });
   };
 
-  const handleDeletePost = async () => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this post? This action cannot be undone."
-      )
-    ) {
-      try {
-        setIsDeleting(true);
-        await deletePost(postData._id);
+  const handleDeletePostClick = () => {
+    setShowDeleteModal(true);
+  };
 
-        if (onPostDeleted) {
-          onPostDeleted(postData._id);
-        } else {
-          setPostData(null);
-        }
-      } catch (err) {
-        console.error("Error deleting post:", err);
-        alert("Failed to delete post. Please try again.");
-      } finally {
-        setIsDeleting(false);
+  const handleDeletePostConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      await deletePost(postData._id);
+
+      setShowDeleteModal(false);
+      showToast("Post deleted successfully", "success");
+
+      if (onPostDeleted) {
+        onPostDeleted(postData._id);
+      } else {
+        setPostData(null);
       }
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      setShowDeleteModal(false);
+      showToast("Failed to delete post. Please try again.", "error");
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeletePostCancel = () => {
+    setShowDeleteModal(false);
   };
 
   const handleEditStart = () => {
@@ -158,7 +172,7 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
 
   const handleEditSave = async () => {
     if (!editText.trim()) {
-      alert("Post content cannot be empty");
+      showToast("Post content cannot be empty", "error");
       return;
     }
 
@@ -174,13 +188,14 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
       });
       setPostData(updatedPost);
       setIsEditing(false);
+      showToast("Post updated successfully", "success");
 
       if (onPostUpdated) {
         onPostUpdated(updatedPost);
       }
     } catch (err) {
       console.error("Error updating post:", err);
-      alert("Failed to update post. Please try again.");
+      showToast("Failed to update post. Please try again.", "error");
     } finally {
       setIsUpdating(false);
     }
@@ -207,10 +222,8 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
         {postData.group && groupName && (
           <div className="post-group">
             {isOnGroupPage ? (
-              // If we're already on this group's page, show it as non-clickable text
               <span className="group-name-current">in {groupName}</span>
             ) : (
-              // If we're not on this group's page, show it as a clickable link
               <Link to={`/groups/${postData.group._id || postData.group}`}>
                 <span className="group-name">in {groupName}</span>
               </Link>
@@ -237,7 +250,7 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
             </button>
             <button
               className="delete-post-btn"
-              onClick={handleDeletePost}
+              onClick={handleDeletePostClick}
               disabled={isDeleting || isUpdating}
               title="Delete post"
             >
@@ -383,6 +396,25 @@ const PostItem = ({ post, onPostDeleted, onPostUpdated }) => {
           )}
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeletePostCancel}
+        onConfirm={handleDeletePostConfirm}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete Post"
+        cancelText="Cancel"
+        confirmButtonClass="btn-danger"
+        isLoading={isDeleting}
+      />
+
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.show}
+        onClose={closeToast}
+      />
     </div>
   );
 };
