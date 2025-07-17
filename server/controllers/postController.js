@@ -67,16 +67,13 @@ exports.getFeed = async (req, res) => {
     const friends = user.friends;
     const userGroups = user.groups;
 
-    // Get all public groups
     const publicGroups = await Group.find({ isPrivate: false }).select("_id");
     const publicGroupIds = publicGroups.map((group) => group._id);
 
-    // Combine user's groups with public groups for the feed
     const allowedGroupIds = [...userGroups, ...publicGroupIds];
 
     const posts = await Post.find({
       $or: [
-        // Posts from friends and the user themselves (not in any group)
         {
           user: { $in: [...friends, req.user.id] },
           group: { $exists: false },
@@ -85,7 +82,6 @@ exports.getFeed = async (req, res) => {
           user: { $in: [...friends, req.user.id] },
           group: null,
         },
-        // Posts from groups the user is a member of OR public groups
         {
           group: { $in: allowedGroupIds },
         },
@@ -96,17 +92,15 @@ exports.getFeed = async (req, res) => {
       .populate("comments.user", ["username", "profilePicture"])
       .sort({ createdAt: -1 });
 
-    // Additional safety check: filter out private groups the user is not a member of
     const filteredPosts = posts.filter((post) => {
       if (!post.group) {
-        return true; // Personal posts are always allowed
+        return true;
       }
 
       if (!post.group.isPrivate) {
-        return true; // Public group posts are always allowed
+        return true;
       }
 
-      // For private groups, check if user is a member
       const isMember = userGroups.some(
         (groupId) => groupId.toString() === post.group._id.toString()
       );
