@@ -21,9 +21,7 @@ const FriendRequestsPage = () => {
   useEffect(() => {
     const loadFriendRequests = async () => {
       try {
-        console.log("Fetching friend requests...");
         const data = await getFriendRequests();
-        console.log("Friend requests data:", data);
         setRequests(data);
         setError(null);
       } catch (err) {

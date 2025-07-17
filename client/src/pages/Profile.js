@@ -96,7 +96,6 @@ const Profile = () => {
         setLoadingFriends(true);
         try {
           if (profile.friends && profile.friends.length > 0) {
-            console.log("Loading friends data for", profile.friends);
             const friendPromises = profile.friends.map((friendId) =>
               getUserProfile(
                 typeof friendId === "object" ? friendId._id : friendId
@@ -119,7 +118,6 @@ const Profile = () => {
         setLoadingGroups(true);
         try {
           if (profile.groups && profile.groups.length > 0) {
-            console.log("Loading groups data for", profile.groups);
 
             const { getGroupById } = await import("../services/api");
             const groupsData = [];

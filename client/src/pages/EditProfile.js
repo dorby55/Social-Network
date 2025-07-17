@@ -96,7 +96,6 @@ const EditProfile = () => {
 
     try {
       const result = await uploadProfilePicture(profileImage);
-      console.log("Upload response:", result);
 
       if (result.success && result.profilePicture) {
         let imageUrl = result.profilePicture;
@@ -109,7 +108,6 @@ const EditProfile = () => {
         const timestamp = new Date().getTime();
         const cachedImageUrl = `${imageUrl}?t=${timestamp}`;
 
-        console.log("Setting profile image URL:", cachedImageUrl);
         setProfileImageUrl(cachedImageUrl);
 
         updateProfilePicture(cachedImageUrl);

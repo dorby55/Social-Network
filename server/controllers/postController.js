@@ -6,18 +6,14 @@ const { validationResult } = require("express-validator");
 exports.createPost = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log("Validation errors:", errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
-    console.log("Received post data:", req.body);
-
     const { text, group, mediaType, mediaUrl } = req.body;
 
     if (!text || text.trim().length === 0) {
       if (!mediaType || mediaType === "none" || !mediaUrl) {
-        console.log("Error: No text content or media provided");
         return res
           .status(400)
           .json({ msg: "Post must contain either text or media" });
@@ -30,11 +26,9 @@ exports.createPost = async (req, res) => {
     const finalMediaUrl = finalMediaType !== "none" ? mediaUrl || "" : "";
 
     if (group) {
-      console.log("Checking group membership for group:", group);
       const groupDoc = await Group.findById(group);
 
       if (!groupDoc) {
-        console.log("Group not found:", group);
         return res.status(404).json({ msg: "Group not found" });
       }
 
@@ -43,7 +37,6 @@ exports.createPost = async (req, res) => {
       );
 
       if (!isMember) {
-        console.log("User not a member of group:", req.user.id, group);
         return res.status(403).json({ msg: "You must be a member to post" });
       }
     }
@@ -56,13 +49,10 @@ exports.createPost = async (req, res) => {
       mediaUrl: finalMediaUrl,
     });
 
-    console.log("Creating post:", newPost);
-
     const post = await newPost.save();
 
     await post.populate("user", ["username", "profilePicture"]);
 
-    console.log("Post created successfully:", post._id);
     res.json(post);
   } catch (err) {
     console.error("Error creating post:", err.message);

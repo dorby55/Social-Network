@@ -137,13 +137,11 @@ const GroupDetail = () => {
   };
 
   const handlePostCreated = (newPost) => {
-    console.log("New post created in group:", newPost);
     setPosts((prevPosts) => [newPost, ...prevPosts]);
     setError(null);
   };
 
   const handlePostUpdated = (updatedPost) => {
-    console.log("Post updated in group:", updatedPost);
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
         post._id === updatedPost._id ? updatedPost : post
@@ -152,7 +150,6 @@ const GroupDetail = () => {
   };
 
   const handlePostDeleted = (deletedPostId) => {
-    console.log("Post deleted from group:", deletedPostId);
     setPosts((prevPosts) =>
       prevPosts.filter((post) => post._id !== deletedPostId)
     );

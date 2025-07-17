@@ -197,7 +197,6 @@ exports.deleteProfilePicture = async (req, res) => {
 
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        console.log(`Deleted file: ${filePath}`);
       }
     }
 

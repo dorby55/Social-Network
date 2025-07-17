@@ -18,7 +18,6 @@ const GroupInvitations = () => {
     const fetchInvitations = async () => {
       try {
         const data = await getUserInvitations();
-        console.log("Fetched invitations:", data);
         setInvitations(data);
         setError(null);
       } catch (err) {
@@ -44,7 +43,6 @@ const GroupInvitations = () => {
     try {
       setLoading(true);
       const result = await respondToInvitation(groupId, accept);
-      console.log("Response result:", result);
 
       window.location.reload();
 

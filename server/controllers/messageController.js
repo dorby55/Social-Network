@@ -30,8 +30,6 @@ exports.sendMessage = async (req, res) => {
 
     const io = req.app.get("io");
     if (io) {
-      console.log("Emitting socket events for message:", message._id);
-
       io.to(roomId).emit("receive_message", message);
       io.emit("message_notification", message);
     }

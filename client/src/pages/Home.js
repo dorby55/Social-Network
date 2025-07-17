@@ -36,13 +36,11 @@ const Home = () => {
   }, [isAuthenticated]);
 
   const handlePostCreated = (newPost) => {
-    console.log("New post created on home feed:", newPost);
     setPosts((prevPosts) => [newPost, ...prevPosts]);
     setError(null);
   };
 
   const handlePostUpdated = (updatedPost) => {
-    console.log("Post updated on home feed:", updatedPost);
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
         post._id === updatedPost._id ? updatedPost : post
@@ -51,7 +49,6 @@ const Home = () => {
   };
 
   const handlePostDeleted = (deletedPostId) => {
-    console.log("Post deleted from home feed:", deletedPostId);
     setPosts((prevPosts) =>
       prevPosts.filter((post) => post._id !== deletedPostId)
     );

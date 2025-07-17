@@ -60,7 +60,6 @@ const ManageGroup = () => {
     const fetchGroupData = async () => {
       try {
         const groupData = await getGroupById(id);
-        console.log("Group data fetched:", groupData);
 
         setGroup(groupData);
         setFormData({
@@ -73,13 +72,8 @@ const ManageGroup = () => {
           groupData.pendingRequests &&
           Array.isArray(groupData.pendingRequests)
         ) {
-          console.log("Setting pending requests:", groupData.pendingRequests);
           setPendingRequests(groupData.pendingRequests);
         } else {
-          console.log(
-            "No pending requests found or invalid format:",
-            groupData.pendingRequests
-          );
           setPendingRequests([]);
         }
 
@@ -102,9 +96,7 @@ const ManageGroup = () => {
   const refreshGroupData = async () => {
     try {
       setLoading(true);
-      console.log("Fetching updated group data...");
       const refreshedGroup = await getGroupById(id);
-      console.log("Refreshed group data:", refreshedGroup);
 
       setGroup(refreshedGroup);
       setFormData({
@@ -117,16 +109,8 @@ const ManageGroup = () => {
         refreshedGroup.pendingRequests &&
         Array.isArray(refreshedGroup.pendingRequests)
       ) {
-        console.log(
-          "Setting pending requests:",
-          refreshedGroup.pendingRequests
-        );
         setPendingRequests(refreshedGroup.pendingRequests);
       } else {
-        console.log(
-          "No pending requests found or invalid format:",
-          refreshedGroup.pendingRequests
-        );
         setPendingRequests([]);
       }
 
@@ -221,9 +205,7 @@ const ManageGroup = () => {
 
     setLoadingUsers(true);
     try {
-      console.log("Searching for users with term:", term);
       const users = await searchUsersApi(term);
-      console.log("Search results:", users);
 
       const filteredUsers = users.filter((user) => {
         if (user._id === currentUser._id) return false;
@@ -286,9 +268,7 @@ const ManageGroup = () => {
     setInviting(true);
 
     try {
-      console.log(`Inviting user ${selectedUser} to group ${id}`);
       const result = await inviteToGroup(id, selectedUser);
-      console.log("Invitation result:", result);
 
       setUserSearchTerm("");
       setSelectedUser("");
@@ -473,12 +453,6 @@ const ManageGroup = () => {
                   const userId = request.user._id || request.user;
                   const username =
                     request.user.username || `User ID: ${userId}`;
-
-                  console.log("Rendering request:", {
-                    request,
-                    userId,
-                    username,
-                  });
 
                   return (
                     <div key={userId} className="pending-request-item">

@@ -10,10 +10,8 @@ const uploadsDir = path.join(
   "public",
   "uploads"
 );
-console.log(`Using uploads directory: ${uploadsDir}`);
 
 if (!fs.existsSync(uploadsDir)) {
-  console.log(`Creating uploads directory: ${uploadsDir}`);
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 

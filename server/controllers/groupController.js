@@ -155,10 +155,6 @@ exports.deleteGroup = async (req, res) => {
 
 exports.joinGroup = async (req, res) => {
   try {
-    console.log(
-      `User ${req.user.id} attempting to join group ${req.params.id}`
-    );
-
     const group = await Group.findById(req.params.id);
 
     if (!group) {
@@ -189,24 +185,14 @@ exports.joinGroup = async (req, res) => {
       group.invitations = group.invitations.filter(
         (inv) => inv.user.toString() !== req.user.id
       );
-      console.log(
-        `User ${req.user.id} sent join request - removed pending invitation`
-      );
     }
-
-    console.log(
-      `Adding user ${req.user.id} to pending requests for group ${req.params.id}`
-    );
 
     group.pendingRequests.push({
       user: req.user.id,
       requestedAt: new Date(),
     });
 
-    console.log(`Group pending requests after push:`, group.pendingRequests);
-
     await group.save();
-    console.log(`Group saved with new pending request`);
 
     const message = hadInvitation
       ? "Join request sent to group admin. Your pending invitation was automatically cancelled."
@@ -221,15 +207,10 @@ exports.joinGroup = async (req, res) => {
 
 exports.inviteToGroup = async (req, res) => {
   try {
-    console.log(
-      `User ${req.user.id} is trying to invite user ${req.params.userId} to group ${req.params.id}`
-    );
-
     const group = await Group.findById(req.params.id);
     const userId = req.params.userId;
 
     if (!group) {
-      console.log(`Group ${req.params.id} not found`);
       return res.status(404).json({ msg: "Group not found" });
     }
 
@@ -239,7 +220,6 @@ exports.inviteToGroup = async (req, res) => {
     );
 
     if (!isAdmin && !isMember) {
-      console.log(`User ${req.user.id} is not authorized to invite others`);
       return res
         .status(401)
         .json({ msg: "Only members can invite others to join" });
@@ -247,7 +227,6 @@ exports.inviteToGroup = async (req, res) => {
 
     const invitedUser = await User.findById(userId);
     if (!invitedUser) {
-      console.log(`User to invite (${userId}) not found`);
       return res.status(404).json({ msg: "User not found" });
     }
 
@@ -256,7 +235,6 @@ exports.inviteToGroup = async (req, res) => {
     );
 
     if (isAlreadyMember) {
-      console.log(`User ${userId} is already a member of the group`);
       return res.status(400).json({ msg: "User is already a member" });
     }
 
@@ -267,7 +245,6 @@ exports.inviteToGroup = async (req, res) => {
       );
 
     if (hasInvitation) {
-      console.log(`User ${userId} already has an invitation`);
       return res.status(400).json({ msg: "User has already been invited" });
     }
 
@@ -279,26 +256,20 @@ exports.inviteToGroup = async (req, res) => {
       group.pendingRequests = group.pendingRequests.filter(
         (request) => request.user.toString() !== userId
       );
-      console.log(`User ${userId} was invited - removed pending join request`);
     }
 
     if (!group.invitations) {
       group.invitations = [];
     }
 
-    console.log(
-      `Adding user ${userId} to invitations, invited by ${req.user.id}`
-    );
     group.invitations.push({
       user: userId,
       invitedBy: req.user.id,
       invitedAt: new Date(),
     });
 
-    console.log(`Saving group with new invitation`);
     await group.save();
 
-    console.log(`Invitation saved successfully`);
     const message = hadJoinRequest
       ? "Invitation sent successfully. The user's pending join request was automatically cancelled."
       : "Invitation sent successfully";
@@ -339,9 +310,6 @@ exports.respondToInvitation = async (req, res) => {
       if (hadJoinRequest) {
         group.pendingRequests = group.pendingRequests.filter(
           (request) => request.user.toString() !== req.user.id
-        );
-        console.log(
-          `User ${req.user.id} accepted invitation - removed any pending join requests`
         );
       }
 

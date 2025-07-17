@@ -28,8 +28,6 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    console.log("UI: Entered chat page, requesting notification refresh");
-
     window.dispatchEvent(new Event("refreshMessageNotifications"));
 
     setTimeout(() => {
@@ -123,10 +121,6 @@ const ChatPage = () => {
           (conv) => conv.otherUser._id === currentChat._id
         );
         const unreadCount = conversation?.unreadCount || 0;
-
-        console.log(
-          `UI: Loaded chat with ${currentChat.username}, had ${unreadCount} unread messages`
-        );
 
         if (unreadCount > 0) {
           setConversations((prevConversations) =>
