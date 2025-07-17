@@ -1,13 +1,10 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 
-// Layout components
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 
-// Page components
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -23,7 +20,6 @@ import FriendRequestsPage from "./pages/FriendRequestsPage";
 import Statistics from "./pages/Statistics";
 import NotFound from "./pages/NotFound";
 
-// Protected route component
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 import "./App.css";

@@ -109,10 +109,7 @@ export const createPost = async (postData) => {
       mediaUrl: postData.mediaUrl || "",
     };
 
-    console.log("Creating post with payload:", payload);
-
     const res = await axios.post(`${API_URL}/posts`, payload, config);
-    console.log("Post created successfully:", res.data);
     return res.data;
   } catch (error) {
     console.error("Error creating post:", error.response?.data || error);
@@ -157,9 +154,7 @@ export const updatePost = async (postId, postData) => {
       },
     };
 
-    console.log(`Updating post ${postId} with data:`, postData);
     const res = await axios.put(`${API_URL}/posts/${postId}`, postData, config);
-    console.log("Post updated successfully:", res.data);
     return res.data;
   } catch (error) {
     console.error("Error updating post:", error.response?.data || error);
@@ -187,17 +182,11 @@ export const updateComment = async (postId, commentId, commentData) => {
         "x-auth-token": token,
       },
     };
-
-    console.log(
-      `Updating comment ${commentId} on post ${postId} with data:`,
-      commentData
-    );
     const res = await axios.put(
       `${API_URL}/posts/comment/${postId}/${commentId}`,
       commentData,
       config
     );
-    console.log("Comment updated successfully:", res.data);
     return res.data;
   } catch (error) {
     console.error("Error updating comment:", error.response?.data || error);
@@ -214,12 +203,10 @@ export const deleteComment = async (postId, commentId) => {
       },
     };
 
-    console.log(`Deleting comment ${commentId} from post ${postId}`);
     const res = await axios.delete(
       `${API_URL}/posts/comment/${postId}/${commentId}`,
       config
     );
-    console.log("Comment deleted successfully");
     return res.data;
   } catch (error) {
     console.error("Error deleting comment:", error.response?.data || error);
